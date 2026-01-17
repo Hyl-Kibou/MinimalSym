@@ -425,33 +425,12 @@ def planar_mol_axis(mol):
 
     :type mol: molsym.Molecule
     :rtype: NumPy array of shape (3,) or None
-    """
-    
-    # Center coordinates at center of mass (or centroid)
+    """    
     coords = mol.coords - mol.coords.mean(axis=0)
-
-    """
-    # Remove atoms too close to origin (optional safety)
-    norms = np.linalg.norm(coords, axis=1)
-    coords = coords[norms > mol.tol]
-
-    if coords.shape[0] < 3:
-        return None
-    """
-    # Singular Value Decomposition
-    _, _, vh = np.linalg.svd(coords, full_matrices=False)
-
-    # Normal to best-fit plane = smallest singular vector
-    normal = vh[-1]
-
-    # Normalize
-    norm = np.linalg.norm(normal)
-    """
-    if norm < mol.tol:
-        return None
-    """
-
-    return normal / norm
+    _, _, vh = np.linalg.svd(coords, full_matrices=False)    
+    axis = vh[-1]
+    axis = normalize(axis)
+    return axis
 
 def find_C3s_for_Ih(mol):
     """
