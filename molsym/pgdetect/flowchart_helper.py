@@ -161,6 +161,26 @@ def find_a_c2(mol, SEAs):
                                 return c
     return None
 
+def compute_R_max(mol, axis):
+    """
+    Compute the maximum distance of any atom from a given axis.
+    
+    :param mol: Molecule object with mol.coords
+    :param axis: NumPy array of shape (3,), must be normalized
+    :return: maximum perpendicular distance
+    """
+    axis = normalize(axis)
+    coords = mol.coords  # shape (N,3)
+    # projection along axis
+    proj = np.dot(coords, axis)[:, np.newaxis] * axis[np.newaxis, :]
+    # perpendicular component
+    perp = coords - proj
+    # distance from axis
+    dists = np.linalg.norm(perp, axis=1)
+    # maximum distance
+    R_max = np.max(dists)
+    return R_max
+
 def is_there_ortho_c2(mol, SEAs, paxis):
     """
     Search for any possible C_2 rotation axes that are orthogonal to paxis, return the first one found.
@@ -172,13 +192,15 @@ def is_there_ortho_c2(mol, SEAs, paxis):
     :rtype: (bool, NumPy array of shape (3,) or None)
     """
 
+    ortho_tol = mol.tol / compute_R_max(mol, paxis) * 1.10
+
     for sea in SEAs:
         b = c2b(mol, sea, axis=paxis)
-        if b is not None:
+        if b is not None and abs(np.dot(b, paxis)) <= ortho_tol:
             return True, b
         else:
             a = c2a(mol, sea, axis=paxis)
-            if a is not None:
+            if a is not None and abs(np.dot(a, paxis)) <= ortho_tol:
                 return True, a
             else:
                 if sea.label == "Linear":
@@ -187,7 +209,7 @@ def is_there_ortho_c2(mol, SEAs, paxis):
                             continue
                         elif sea2.label == "Linear":
                             c = c2c(mol, sea, sea2, axis=paxis)
-                            if c is not None:
+                            if c is not None and abs(np.dot(c, paxis)) <= ortho_tol:
                                 return True, c
     return False, None
 
