@@ -171,6 +171,7 @@ def is_there_ortho_c2(mol, SEAs, paxis):
     :return: True if found and new C_2 axis
     :rtype: (bool, NumPy array of shape (3,) or None)
     """
+
     for sea in SEAs:
         b = c2b(mol, sea, axis=paxis)
         if b is not None:
@@ -403,18 +404,32 @@ def planar_mol_axis(mol):
     :type mol: molsym.Molecule
     :rtype: NumPy array of shape (3,) or None
     """
-    for i in range(mol.natoms):
-        for j in range(i,mol.natoms):
-            a = normalize(mol.coords[i,:])
-            b = normalize(mol.coords[j,:])
-            if a is not None and b is not None:
-                chk = np.dot(a,b)
-                if not np.isclose(chk, 1.0, atol=mol.tol):
-                    out = normalize(np.cross(a,b))
-                    if out is not None:
-                        return out
-                    #return normalize(np.cross(a,b))
-    #return None
+    
+    # Center coordinates at center of mass (or centroid)
+    coords = mol.coords - mol.coords.mean(axis=0)
+
+    """
+    # Remove atoms too close to origin (optional safety)
+    norms = np.linalg.norm(coords, axis=1)
+    coords = coords[norms > mol.tol]
+
+    if coords.shape[0] < 3:
+        return None
+    """
+    # Singular Value Decomposition
+    _, _, vh = np.linalg.svd(coords, full_matrices=False)
+
+    # Normal to best-fit plane = smallest singular vector
+    normal = vh[-1]
+
+    # Normalize
+    norm = np.linalg.norm(normal)
+    """
+    if norm < mol.tol:
+        return None
+    """
+
+    return normal / norm
 
 def find_C3s_for_Ih(mol):
     """
