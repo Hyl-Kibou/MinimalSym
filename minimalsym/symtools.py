@@ -1,5 +1,5 @@
 import numpy as np
-from molsym.molecule import *
+from .molecule import *
 
 def rotation_matrix(axis, theta):
     """
@@ -204,29 +204,3 @@ def gcd(A, B):
     else:
         r = a % b
         return gcd(b, r)
-
-def divisors(n): # deprecated!
-    """
-    Returns the divisors of n.
-    This isn't meant to handle large numbers, thankfully most point groups have an order less than 100
-    
-    :type n: int
-    :return: List of n's divisors
-    :rtype: List[int]
-    """
-    out = []
-    for i in range(n):
-        if n % (i+1) == 0:
-            out.append(i+1)
-    return out
-
-def distance(a,b): # deprecated!
-    """
-    Euclidean distance between a and b.
-
-    :type a: NumPy array of shape (n,)
-    :type b: NumPy array of shape (n,)
-    :return: Distance between a and b
-    :rtype: float
-    """
-    return np.sqrt(((a-b)**2).sum())

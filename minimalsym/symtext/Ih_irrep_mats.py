@@ -1083,44 +1083,6 @@ def parse_Mathematica(strang):
     JIMMp = [JIMM[i-1] for i in allen_map_Ih]
     return np.array(JIMMp)
 
-def parse_to_string(strang): # deprecated!
-    # TODO: Move this function outside of MolSym
-    import sympy
-    # Remove List
-    lst = re.compile(r"List")
-    strang = lst.sub("", strang)
-    # Sqrt --->
-    sqr = re.compile(r"Sqrt")
-    strang = sqr.sub(r"sqrt", strang)
-    # Sympy does not recognize Sqrt(0.6) as Sqrt(3/5)
-    o6 = re.compile(r"0.6")
-    strang = o6.sub(r"3/5", strang)
-    from copy import deepcopy
-    ## Replace other instances of decimals
-    #iflist = [r"0\.1",
-    #          r"0\.25",
-    #          r"0\.2",
-    #          r"0\.5"]
-    #outlist = ["(1/10)",
-    #           "(1/4)",
-    #           "(1/5)",
-    #           "(1/2)"] 
-    #for i in range(len(iflist)):
-    #    r = re.compile(iflist[i])
-    #    strang = re.sub(r, outlist[i], strang)
-    JIMM = []
-    for s in strang.splitlines():
-        #print(sympy.Array(sympy.parsing.sympy_parser.parse_expr(s.strip(), evaluate=False)))
-        #JIMM.append(sympy.Array(sympy.simplify(sympy.parsing.sympy_parser.parse_expr(s.strip(), evaluate=False), rational=True, doit=False, evaluate=True, ratio=1)))
-        JIMM.append(sympy.Array(sympy.simplify(sympy.sympify(sympy.parsing.sympy_parser.parse_expr(s.strip())))))
-        #JIMM.append(sympy.Array(eval(s.strip())))
-    # Permute JIMM to MolSym ordering
-    #JIMMp = [0 for i in allen_map_Ih]
-    #for i in range(len(allen_map_Ih)):
-    #    JIMMp[allen_map_Ih[i]-1] = JIMM[i]
-    JIMMp = [JIMM[i-1] for i in allen_map_Ih]
-    return np.array(JIMMp)
-
 irrm_I = {}
 irrm_I["A"] = np.array([[[1.0]] for i in range(60)])
 irrm_I["T_1"] = parse_Mathematica(T1g_str)[0:60]

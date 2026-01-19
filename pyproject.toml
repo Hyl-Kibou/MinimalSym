@@ -3,13 +3,12 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [metadata]
-name = "MolSym"
-version = "0.2.1"
+name = "MinimalSym"
+version = "0.1.0"
 authors = [
-    "Stephen Goodlett <smg13363@uga.edu>",
-    "Nate Kitzmiller <nathaniel.kitzmiller@uga.edu>",
+	"Sebastian Hernández <s3b4s7i4nhg@gmail.com>"
     ]
-description = "A program for molecular symmetry detection and SALC construction"
+description = "A program for molecular symmetry detection. Minimal version of MolSym library."
 long_description = "file: README.md"
 license = "MIT"
 classifiers = [

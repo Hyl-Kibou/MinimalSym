@@ -1,5 +1,5 @@
 import numpy as np
-from molsym.symtools import *
+from ..symtools import *
 
 class RotationElement():
     """

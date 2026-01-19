@@ -1,8 +1,8 @@
 import numpy as np
 import re
 import qcelemental as qcel
-from molsym.molecule import Molecule
-from molsym import find_point_group
+from ..molecule import Molecule
+from minimalsym import find_point_group
 from .point_group import PointGroup
 from .general_irrep_mats import pg_to_symels
 from .symtext_helper import get_atom_mapping, rotate_mol_to_symels, get_linear_atom_mapping, get_class_name

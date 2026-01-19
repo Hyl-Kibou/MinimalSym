@@ -6,22 +6,6 @@ import sys
 global_tol = 1e-8 # TODO It would be nice to get rid of this...
 
 @dataclass
-class Atom():
-    """
-    Dataclass for storing atom information
-
-    :param Z: Atomic number of atom.
-    :param mass: Mass of atom in amu as defined by QCElemental.
-    :param xyz: Position vector of atom in Cartesian coordinates.
-    :type Z: int 
-    :type mass: float
-    :type xyz: NumPy array of shape (3,)
-    """
-    Z:int
-    mass:float
-    xyz:np.array
-
-@dataclass
 class SEA():
     """
     SEA: symmetry equivalent atoms.

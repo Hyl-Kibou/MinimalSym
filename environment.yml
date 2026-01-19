@@ -1,4 +1,4 @@
-name: molsym
+name: minimalsym
 channels:
   - defaults
   - conda-forge
