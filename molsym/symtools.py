@@ -205,7 +205,7 @@ def gcd(A, B):
         r = a % b
         return gcd(b, r)
 
-def divisors(n):
+def divisors(n): # deprecated!
     """
     Returns the divisors of n.
     This isn't meant to handle large numbers, thankfully most point groups have an order less than 100
@@ -220,7 +220,7 @@ def divisors(n):
             out.append(i+1)
     return out
 
-def distance(a,b):
+def distance(a,b): # deprecated!
     """
     Euclidean distance between a and b.
 

@@ -1,0 +1,48 @@
+* = all internal functions needed
+# = is dependent only to the files in this list
+/molsym
+	/symtext
+		general_irrep_mats.py *#
+		Ih_irrep_mats.py #
+			parse_Mathematica
+			irrm_I, irrm_Ih
+		irrep_mats.py #
+			irrm_T, irrm_Th, irrm_Td, irrm_O, irrm_Oh
+		multiplication_table.py #
+			multifly
+			build_mult_table
+			multiply
+			inverse
+		point_group.py *#
+		symel.py *#
+		symtext.py
+			class Symtext
+				init
+				from_molecule
+				get_character_table	
+		symtext_helper.py *#
+	/pgdetect *
+		flowchart.py *#
+		flowchart_helper.py *#
+	molecule.py #
+		class SEA
+		class Molecule
+			init
+			find_com
+			translate
+			distance_matrix
+			find_SEAs
+	symmetrize.py *#
+	symtools.py #
+		rotation_matrix
+		reflection_matrix
+		inversion_matrix
+		Cn
+		Sn
+		isequivalent
+		calcmoit
+		normalize
+		issame_axis
+		isfactor
+		reduce
+		gcd
