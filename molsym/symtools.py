@@ -12,13 +12,12 @@ def rotation_matrix(axis, theta):
     :return: Matrix defining rotation on column vector
     :rtype: NumPy array of shape (3,3)
     """
-    cos_t = np.cos(theta)
-    sin_t = np.sin(theta)
-    # NOT NORMALIZING AXIS!!!
-    M = cos_t * np.eye(3)
-    M += sin_t * np.cross(np.eye(3), axis)
-    M += (1-cos_t) * np.outer(axis, axis)
-    return M
+    kmat1 = np.array([[0.0, -axis[2], axis[1]], 
+                      [axis[2], 0.0, -axis[0]], 
+                      [-axis[1], axis[0], 0.0]])
+    kmat2 = np.matmul(kmat1,kmat1)
+    rodriguesrm = np.eye(3) + np.sin(theta)*kmat1 + (1.0 - np.cos(theta))*kmat2
+    return rodriguesrm
 
 def reflection_matrix(axis):
     """
