@@ -64,10 +64,10 @@ class Symtext():
         """
         Class method for creating a Symtext from a molsym.Molecule
 
-        :type mol: molsym.Molecule
+        :type mol: Atoms object from ASE
         :rtype: molsym.Symtext
         """
-        mol.translate(mol.find_com())
+        mol.translate(-mol.get_center_of_mass())
         pg_str, (paxis, saxis) = find_point_group(mol)
         pg = PointGroup.from_string(pg_str)
         # Return transformation matrix so properties can be rotated to original configuration
@@ -218,7 +218,7 @@ class Symtext():
         sgp = [self.symels[i[1]] for i in isomorphism]
         paxis, saxis = subgroup_axes(subgroup.str, sgp)
         new_mol, reverse_rotate, rotate_to_std = rotate_mol_to_symels(self.mol, paxis, saxis)
-        new_mol.tol = self.mol.tol
+        new_mol.info["tol"] = self.mol.info["tol"]
         atom_map = get_atom_mapping(new_mol, subgroup_symels)
         return Symtext(new_mol, rotate_to_std, reverse_rotate, subgroup, subgroup_symels, atom_map, mult_table, subgroup_irreps, subgroup_irrep_mats)
     

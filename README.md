@@ -12,3 +12,18 @@ A python package for handling molecular symmetry. Minimal modified version of Mo
 ## Installing
 MinimalSym is tested with Python 3.12-3.13, but should work fro 3.9-3.13.
 Most Python environments come equipped with all but one dependency, `QCElemental` 
+
+## Use example
+```python
+from ase import Atoms
+import numpy as np
+from minimalsym.symmetrize import symmetrize
+
+theta =np.radians(104.5)
+positions = np.array(
+    [[0.0, 0.0, 0.0],
+    [0.958, 0.0, 0.0],
+    [0.958 * np.cos(theta), 0.958 * np.sin(theta), 0.0]])
+mol = Atoms(symbols=["O", "H", "H"], positions=positions)
+mol_symmetric =symmetrize(mol, asym_tol=0.05)            
+```

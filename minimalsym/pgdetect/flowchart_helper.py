@@ -47,7 +47,7 @@ def find_rotation_sets(mol, SEAs):
     """
     For each set of symmetry equivalent atoms, find the set of possible RotationElements
 
-    :type mol: molsym.Molecule
+    :type mol: Atoms object from ASE
     :type SEAs: List[molsym.SEA]
     :rtype: List[List[RotationElement]]
     """
@@ -59,20 +59,20 @@ def find_rotation_sets(mol, SEAs):
             sea.label = "Single Atom"
         elif length == 2:
             sea.label = "Linear"
-            sea.axis = normalize(mol[sea.subset[0]].coords)
+            sea.axis = normalize(mol[sea.subset[0]].position)
         else:
             sea_mol = mol[sea.subset]
-            sea_mol.translate(sea_mol.find_com())
+            sea_mol.translate(-sea_mol.get_center_of_mass())
             evals, evecs = np.linalg.eigh(calcmoit(mol[sea.subset]))
             idx = evals.argsort()
             Ia, Ib, Ic = evals[idx]
             Iav, Ibv, Icv = [evecs[:,i] for i in idx]
-            if np.isclose(Ia, Ib, atol=mol.tol) and np.isclose(Ia, Ic, atol=mol.tol):
+            if np.isclose(Ia, Ib, atol=mol.info["tol"]) and np.isclose(Ia, Ic, atol=mol.info["tol"]):
                 sea.label = "Spherical"
-            elif np.isclose(Ia+Ib, Ic, atol=mol.tol):
+            elif np.isclose(Ia+Ib, Ic, atol=mol.info["tol"]):
                 axis = Icv
                 sea.axis = axis
-                if np.isclose(Ia, Ib, atol=mol.tol):
+                if np.isclose(Ia, Ib, atol=mol.info["tol"]):
                     sea.label = "Regular Polygon"
                     for i in range(2,length+1):
                         if isfactor(length,i):
@@ -85,13 +85,13 @@ def find_rotation_sets(mol, SEAs):
                             re = RotationElement(axis, i)
                             out_per_SEA.append(re)
             else:
-                if not (np.isclose(Ia, Ib, atol=mol.tol) or np.isclose(Ib, Ic, atol=mol.tol)):
+                if not (np.isclose(Ia, Ib, atol=mol.info["tol"]) or np.isclose(Ib, Ic, atol=mol.info["tol"])):
                     sea.label = "Asymmetric Rotor"
                     for i in [Iav, Ibv, Icv]:
                         re = RotationElement(i, 2)
                         out_per_SEA.append(re)
                 else:
-                    if np.isclose(Ia, Ib, atol=mol.tol):
+                    if np.isclose(Ia, Ib, atol=mol.info["tol"]):
                         sea.label = "Oblate Symmetric Top"
                         axis = Icv
                         sea.axis = Icv
@@ -119,17 +119,17 @@ def find_rotations(mol, rotation_set):
         return []
     molmoit = calcmoit(mol)
     evals = np.sort(np.linalg.eigh(molmoit)[0])
-    if evals[0] == 0.0 and np.isclose(evals[1], evals[2], atol=mol.tol):
-        for i in range(np.shape(mol.coords)[0]):
-            if normalize(mol.coords[i,:]) is not None:
-                axis = normalize(mol.coords[0,:])
+    if evals[0] == 0.0 and np.isclose(evals[1], evals[2], atol=mol.info["tol"]):
+        for i in range(np.shape(mol.positions)[0]):
+            if normalize(mol.positions[i,:]) is not None:
+                axis = normalize(mol.positions[0,:])
         re = RotationElement(axis, 0)
         return [re]
     rsi = rotation_set_intersection(rotation_set)
     out = []
     for i in rsi:
         rmat = Cn(i.axis, i.order)
-        molB = mol.transform(rmat)
+        molB = Molecule.transform(mol, rmat)
         if isequivalent(mol, molB):
             out.append(i)
     return out
@@ -165,12 +165,13 @@ def compute_R_max(mol, axis):
     """
     Compute the maximum distance of any atom from a given axis.
     
-    :param mol: Molecule object with mol.coords
+    :param mol: Molecule object with mol.positions
+    :type mol: Atoms object from ASE
     :param axis: NumPy array of shape (3,), must be normalized
     :return: maximum perpendicular distance
     """
     axis = normalize(axis)
-    coords = mol.coords  # shape (N,3)
+    coords = mol.positions  # shape (N,3)
     # projection along axis
     proj = np.dot(coords, axis)[:, np.newaxis] * axis[np.newaxis, :]
     # perpendicular component
@@ -192,7 +193,7 @@ def is_there_ortho_c2(mol, SEAs, paxis):
     :rtype: (bool, NumPy array of shape (3,) or None)
     """
 
-    ortho_tol = mol.tol / compute_R_max(mol, paxis) * 1.10
+    ortho_tol = mol.info["tol"] / compute_R_max(mol, paxis) * 1.10
 
     for sea in SEAs:
         b = c2b(mol, sea, axis=paxis)
@@ -262,15 +263,15 @@ def c2a(mol, sea, axis=None, all=False):
     out = []
     for i in range(length):
         for j in range(i+1,length):
-            midpoint = mol.coords[sea.subset[i],:] + mol.coords[sea.subset[j],:]
-            if np.isclose(midpoint, [0,0,0], atol=mol.tol).all():
+            midpoint = mol.positions[sea.subset[i],:] + mol.positions[sea.subset[j],:]
+            if np.isclose(midpoint, [0,0,0], atol=mol.info["tol"]).all():
                 continue
             else:
                 midpoint = normalize(midpoint)
                 if axis is not None and issame_axis(midpoint, axis) or midpoint is None:
                     continue
                 c2 = Cn(midpoint, 2)
-                molB = mol.transform(c2)
+                molB = Molecule.transform(mol, c2)
                 if isequivalent(mol, molB):
                     if all:
                         out.append(midpoint)
@@ -296,13 +297,13 @@ def c2b(mol, sea, axis=None, all=False):
     length = len(sea.subset)
     out = []
     for i in range(length):
-        c2_axis = normalize(mol.coords[sea.subset[i],:])
+        c2_axis = normalize(mol.positions[sea.subset[i],:])
         if c2_axis is None:
             continue
         if axis is not None and issame_axis(c2_axis, axis):
             continue
         c2 = Cn(c2_axis, 2)
-        molB = mol.transform(c2)
+        molB = Molecule.transform(mol, c2)
         if isequivalent(mol, molB):
             if all:
                 out.append(c2_axis)
@@ -325,15 +326,15 @@ def c2c(mol, sea1, sea2, axis=None):
     :return: C_2 axis or list of C_2 axes (if all=True)
     :rtype: NumPy array of shape (3,) or List[NumPy array of shape (3,)]
     """
-    rij = mol.coords[sea1.subset[0],:] - mol.coords[sea1.subset[1],:]
-    rkl = mol.coords[sea2.subset[0],:] - mol.coords[sea2.subset[1],:]
+    rij = mol.positions[sea1.subset[0],:] - mol.positions[sea1.subset[1],:]
+    rkl = mol.positions[sea2.subset[0],:] - mol.positions[sea2.subset[1],:]
     c2_axis = normalize(np.cross(rij, rkl))
     if c2_axis is None:
         return None
     if axis is not None and issame_axis(c2_axis, axis):
         return None
     c2 = Cn(c2_axis,2)
-    molB = mol.transform(c2)
+    molB = Molecule.transform(mol, c2)
     if isequivalent(mol, molB):
         return c2_axis
     return None
@@ -359,7 +360,7 @@ def is_there_sigmah(mol, paxis):
     :rtype: bool
     """
     sigmah = reflection_matrix(paxis)
-    molB = mol.transform(sigmah)
+    molB = Molecule.transform(mol, sigmah)
     return isequivalent(mol, molB)
 
 def is_there_sigmav(mol, SEAs, paxis):
@@ -380,10 +381,10 @@ def is_there_sigmav(mol, SEAs, paxis):
         for i in range(1,length):
             B = sea.subset[i]
             #n = normalize(mol[A].xyz - mol[B].xyz)
-            n = normalize(mol.coords[A,:] - mol.coords[B,:])
+            n = normalize(mol.positions[A,:] - mol.positions[B,:])
             if n is not None:
                 sigma = reflection_matrix(n)
-                molB = mol.transform(sigma)
+                molB = Molecule.transform(mol, sigma)
                 if isequivalent(mol, molB):
                     axes.append(n)
     if len(axes) < 1:
@@ -414,7 +415,7 @@ def mol_is_planar(mol):
     :type mol: molsym.Molecule
     :rtype: bool
     """
-    rank = np.linalg.matrix_rank(mol.coords, tol=mol.tol)
+    rank = np.linalg.matrix_rank(mol.positions, tol=mol.info["tol"])
     if rank < 3:
         return True
     return False
@@ -426,7 +427,7 @@ def planar_mol_axis(mol):
     :type mol: molsym.Molecule
     :rtype: NumPy array of shape (3,) or None
     """    
-    coords = mol.coords - mol.coords.mean(axis=0)
+    coords = mol.positions - mol.positions.mean(axis=0)
     _, _, vh = np.linalg.svd(coords, full_matrices=False)    
     axis = vh[-1]
     axis = normalize(axis)
@@ -440,21 +441,21 @@ def find_C3s_for_Ih(mol):
     :rtype: List[NumPy array of shape (3,)]
     """
     c3_axes = []
-    for i in range(mol.natoms):
-        for j in range(mol.natoms):
-            for k in range(mol.natoms):
+    for i in range(len(mol)):
+        for j in range(len(mol)):
+            for k in range(len(mol)):
                 if i != j and i != k:
-                    rij = mol.coords[i,:] - mol.coords[j,:]
-                    rjk = mol.coords[j,:] - mol.coords[k,:]
-                    rik = mol.coords[i,:] - mol.coords[k,:]
+                    rij = mol.positions[i,:] - mol.positions[j,:]
+                    rjk = mol.positions[j,:] - mol.positions[k,:]
+                    rik = mol.positions[i,:] - mol.positions[k,:]
                     nij = np.linalg.norm(rij)
                     njk = np.linalg.norm(rjk)
                     nik = np.linalg.norm(rik)
-                    if np.isclose(nij, njk, atol=mol.tol) and np.isclose(nij, nik, atol=mol.tol):
+                    if np.isclose(nij, njk, atol=mol.info["tol"]) and np.isclose(nij, nik, atol=mol.info["tol"]):
                         c3_axis = normalize(np.cross(rij, rjk))
                         if c3_axis is not None:
                             c3 = Cn(c3_axis, 3)
-                            molB = mol.transform(c3)
+                            molB = Molecule.transform(mol, c3)
                             if isequivalent(mol, molB):
                                 c3_axes.append(c3_axis)
     unique_axes = [c3_axes[0]]
@@ -479,24 +480,24 @@ def find_C4s_for_Oh(mol):
     :rtype: List[NumPy array of shape (3,)]
     """
     c4_axes = []
-    for i in range(mol.natoms):
-        for j in range(mol.natoms):
-            for k in range(mol.natoms):
-                for l in range(mol.natoms):
+    for i in range(len(mol)):
+        for j in range(len(mol)):
+            for k in range(len(mol)):
+                for l in range(len(mol)):
                     if i != j and k != l and i != k:
-                        rij = mol.coords[i,:] - mol.coords[j,:]
-                        rjk = mol.coords[j,:] - mol.coords[k,:]
-                        rkl = mol.coords[k,:] - mol.coords[l,:]
-                        ril = mol.coords[i,:] - mol.coords[l,:]
+                        rij = mol.positions[i,:] - mol.positions[j,:]
+                        rjk = mol.positions[j,:] - mol.positions[k,:]
+                        rkl = mol.positions[k,:] - mol.positions[l,:]
+                        ril = mol.positions[i,:] - mol.positions[l,:]
                         nij = np.linalg.norm(rij)
                         njk = np.linalg.norm(rjk)
                         nkl = np.linalg.norm(rkl)
                         nil = np.linalg.norm(ril)
-                        if np.isclose(nij, njk, atol=mol.tol) and np.isclose(nkl, nil, atol=mol.tol) and np.isclose(nij, nkl, atol=mol.tol):
+                        if np.isclose(nij, njk, atol=mol.info["tol"]) and np.isclose(nkl, nil, atol=mol.info["tol"]) and np.isclose(nij, nkl, atol=mol.info["tol"]):
                             c4_axis = normalize(np.cross(rij, rjk))
                             if c4_axis is not None:
                                 c4 = Cn(c4_axis, 4)
-                                molB = mol.transform(c4)
+                                molB = Molecule.transform(mol, c4)
                                 if isequivalent(mol, molB):
                                     c4_axes.append(c4_axis)
     unique_axes = [c4_axes[0]]

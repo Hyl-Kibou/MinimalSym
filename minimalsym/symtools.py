@@ -80,29 +80,29 @@ def isequivalent(A,B):
 
     :param A: Molecule A
     :param B: Molecule B
-    :type A: molsym.Molecule
-    :type B: molsym.Molecule
+    :type A: Atoms object from ASE
+    :type B: Atoms object from ASE
     :return: True if equivalent, False if not
     :rtype: bool
     """
-    if A.tol >= B.tol:
-        eq_tol = A.tol
+    if A.info["tol"] >= B.info["tol"]:
+        eq_tol = A.info["tol"]
     else:
-        eq_tol = B.tol
+        eq_tol = B.info["tol"]
     matched_already = []
-    for i in range(A.natoms):
-        for j in range(B.natoms):
+    for i in range(len(A)):
+        for j in range(len(B)):
             # Reduce search list so large molecules are a bit faster
             if j not in matched_already:
                 # Check that masses are equal
-                if A.masses[i] == B.masses[j]:
+                if A.get_masses()[i] == B.get_masses()[j]:
                     # Check if atoms are about at the same Cartesian point
-                    zs = abs(A.coords[i,:]-B.coords[j,:])
+                    zs = abs(A.positions[i,:]-B.positions[j,:])
                     if np.allclose(zs, [0,0,0], atol=eq_tol):
                         matched_already.append(j)
                         break
     # Did we find a match for each atom? If so we win
-    if len(matched_already) == A.natoms:
+    if len(matched_already) == len(A):
         return True
     return False
 
@@ -111,20 +111,20 @@ def calcmoit(atoms):
     Calculates the moment of inertia tensor for a list of atoms.
     
     :param atoms: Set of atoms
-    :type atoms: molsym.Molecule
+    :type atoms: Atoms object from ASE
     :return: Cartesian moment of inertia tensor
     :rtype: NumPy array of shape (3,3)
     """
     I = np.zeros((3,3))
-    atoms.translate(atoms.find_com())
+    atoms.translate(-atoms.get_center_of_mass())
     for i in range(3):
         for j in range(3):
             if i == j:
-                for k in range(atoms.natoms):
-                    I[i,i] += atoms.masses[k]*(atoms.coords[k,(i+1)%3]**2+atoms.coords[k,(i+2)%3]**2)
+                for k in range(len(atoms)):
+                    I[i,i] += atoms.get_masses()[k]*(atoms.positions[k,(i+1)%3]**2+atoms.positions[k,(i+2)%3]**2)
             else:
-                for k in range(atoms.natoms):
-                    I[i,j] -= atoms.masses[k]*atoms.coords[k,i]*atoms.coords[k,j]
+                for k in range(len(atoms)):
+                    I[i,j] -= atoms.get_masses()[k]*atoms.positions[k,i]*atoms.positions[k,j]
     return I
 
 def normalize(a):

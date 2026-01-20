@@ -1,6 +1,7 @@
 import numpy as np
 from ..symtools import *
 from .flowchart_helper import *
+from ..molecule import Molecule
 
 def find_point_group(mol):
     """
@@ -11,7 +12,7 @@ def find_point_group(mol):
     Returns a primary and secondary axis in order to define an orienation of the molecule
     with resepct to the symmetry elements generated later.
     
-    :type mol: molsym.Molecule
+    :type mol: Atoms object from ASE
     :return: Schoenflies point group string, primary axis, and secondary axis
     :rtype: (str, NumPy array of shape (3,), NumPy array of shape (3,))
     """
@@ -21,16 +22,16 @@ def find_point_group(mol):
     moit = calcmoit(mol)
     Ia_mol, Ib_mol, Ic_mol = np.sort(np.linalg.eigh(moit)[0])
     # Linear tops
-    if np.isclose(Ia_mol, 0.0, atol=mol.tol):
-        if isequivalent(mol, mol.transform(inversion_matrix())):
+    if np.isclose(Ia_mol, 0.0, atol=mol.info["tol"]):
+        if isequivalent(mol, Molecule.transform(mol, inversion_matrix())):
             pg = "D0h"
         else:
             pg = "C0v"
     # Spherical tops
-    elif np.isclose(Ia_mol, Ib_mol, atol=mol.tol) and np.isclose(Ia_mol, Ic_mol, atol=mol.tol):
-        seas = mol.find_SEAs()
+    elif np.isclose(Ia_mol, Ib_mol, atol=mol.info["tol"]) and np.isclose(Ia_mol, Ic_mol, atol=mol.info["tol"]):
+        seas = Molecule.find_SEAs(mol)
         n, axes = num_C2(mol, seas)
-        invertable = isequivalent(mol, mol.transform(inversion_matrix()))
+        invertable = isequivalent(mol, Molecule.transform(mol, inversion_matrix()))
         # Icosahedral
         if n == 15:
             # tempaxis is any C2 axis 
@@ -72,7 +73,7 @@ def find_point_group(mol):
             else:
                 pg = "Td"
     else:
-        seas = mol.find_SEAs()
+        seas = Molecule.find_SEAs(mol)
         rot_set = find_rotation_sets(mol, seas)
         rots = find_rotations(mol, rot_set)
         if len(rots) >= 1:
@@ -81,7 +82,7 @@ def find_point_group(mol):
         else:
             c2 = find_a_c2(mol, seas)
             if c2 is None:
-                molB = mol.transform(inversion_matrix())
+                molB = Molecule.transform(mol, inversion_matrix())
                 if isequivalent(mol, molB):
                     return "Ci", (paxis, saxis)
                 else:
@@ -116,7 +117,7 @@ def find_point_group(mol):
                 saxis = normalize(np.cross(paxis,sigmav))
         else:
             S2n = Sn(paxis, Cn*2)
-            molB = mol.transform(S2n)
+            molB = Molecule.transform(mol, S2n)
             if isequivalent(mol, molB):
                 pg = "S"+str(2*Cn)
             else:

@@ -1,5 +1,6 @@
 import numpy as np
 import qcelemental as qcel
+from ase import Atoms
 from dataclasses import dataclass
 from copy import deepcopy
 import sys
@@ -22,22 +23,15 @@ class SEA():
     subset:np.array
     axis:np.array
 
+
+
 class Molecule():
     """
     Class dealing with molecule relevant information.
     Typically initiated from a QCSchema object.
     """
-    def __init__(self, atoms, coords, masses) -> None:
-        self.tol = 1e-5
-        self.atoms = np.asarray(atoms)
-        try:
-            self.natoms = len(self.atoms)
-        except TypeError:
-            self.natoms = 1
-        self.coords = np.asarray(coords)
-        self.masses = np.asarray(masses)
 
-    @classmethod
+    @staticmethod
     def from_schema(cls, schema):
         """
         Class method for constructing a Molecule from a QCSchema object
@@ -53,9 +47,11 @@ class Molecule():
         masses = np.zeros(natoms)
         for (idx, symb) in enumerate(atoms):
             masses[idx] = qcel.periodictable.to_mass(symb)
-        return cls(atoms, coords, masses)
+        mol = Atoms(symbols=atoms, positions=coords)
+        mol.set_masses(masses)
+        return mol
     
-    @classmethod
+    @staticmethod
     def from_psi4_molecule(cls, mol):
         """
         Class method for constructing a Molecule from a QCSchema object
@@ -69,9 +65,11 @@ class Molecule():
         atoms = [mol.symbol(i) for i in range(mol.natom())]
         coords = mol.geometry().to_array()
         masses = [mol.mass(i) for i in range(mol.natom())]
-        return cls(atoms, coords, masses)
+        mol = Atoms(symbols=atoms, positions=coords)
+        mol.set_masses(masses)
+        return mol
 
-    @classmethod
+    @staticmethod
     def from_file(cls, fn, keep_angstrom=False):
         """
         Class method for constructing a Molecule from an *.xyz file
@@ -86,9 +84,9 @@ class Molecule():
         schema = qcel.models.Molecule.from_data(strang).dict()
         if keep_angstrom:
             schema["geometry"] *= qcel.constants.bohr2angstroms
-        return cls.from_schema(schema)
+        return Molecule.from_schema(schema)
 
-    @classmethod
+    @staticmethod
     def from_psi4_schema(cls, schema):
         """
         Class method for constructing a Molecule from a QCSchema object generated in Psi4.
@@ -105,79 +103,45 @@ class Molecule():
         masses = np.zeros(natoms)
         for (idx, symb) in enumerate(atoms):
             masses[idx] = qcel.periodictable.to_mass(symb)
-        return cls(atoms, coords, masses)
+        mol = Atoms(symbols=atoms, positions=coords)
+        mol.set_masses(masses)
+        return mol
 
+    @staticmethod
     def to_xyz_string(self, already_angstrom=False):
         # Will save xyz in Angstrom, undoing the previous
         # Ang->Bohr from Molecule.from_schema
         if already_angstrom:
-            self.coords /= qcel.constants.bohr2angstroms
-        qcmol = qcel.models.Molecule(
-            **{"symbols": self.atoms, 
-            "geometry": self.coords})
-        return qcmol.to_string("xyz")
+            self.positions /= qcel.constants.bohr2angstroms
+        qcmol = qcel.models.Atoms(
+            **{"symbols": self.get_chemical_symbols(), 
+            "geometry": self.positions})
+        return qcmol.to_string("xyz")        
 
-    def __repr__(self) -> str:
-        rstr = "MolSym Molecule:\n"
-        for i in range(self.natoms):
-            rstr += f"   {self.atoms[i]:3s}   {self.coords[i,0]:12.8f}"
-            rstr += f"   {self.coords[i,1]:12.8f}   {self.coords[i,2]:12.8f}\n"
-        return rstr
-
-    def __str__(self) -> str:
-        return self.__repr__()
-
-    def __getitem__(self, i):
-        return Molecule(self.atoms[i], self.coords[i,:], self.masses[i])
-
-    def __len__(self):
-        return self.natoms
-
-    def __eq__(self, other):
-        # Select higher tolerance
-        if self.tol >= other.tol:
-            eq_tol = self.tol
-        else:
-            eq_tol = other.tol
-        if isinstance(other, Molecule):
-            c1 = (other.atoms == self.atoms).all()
-            c2 = (other.masses == self.masses).all()
-            c3 = np.allclose(other.coords, self.coords, atol=eq_tol)
-            return c1 and c2 and c3
-
-    def find_com(self):
+    @staticmethod
+    def find_com(self): # deprecate!
         """
         Get center of mass of molecule.
 
         :return: Center of mass
         :rtype: NumPy array of shape (3,)
         """
-        com = np.zeros(3)
-        for i in range(self.natoms):
-            com += self.masses[i]*self.coords[i,:]
-        return com / sum(self.masses)
 
+        return self.get_center_of_mass()
+
+    @staticmethod
     def is_at_com(self):
         """
         Checks if molecule is at center of mass already.
 
         :rtype: bool
         """
-        if sum(abs(self.find_com())) < self.tol:
+        if sum(abs(self.get_center_of_mass())) < self.info["tol"]:
             return True
         else:
-            return False
+            return False    
 
-    def translate(self, r):
-        """
-        Translates Cartesian positions of all atoms in molecule in place by vector r.
-
-        :param r: Translation vector
-        :type r: NumPy array of shape (3,)
-        """
-        for i in range(self.natoms):
-            self.coords[i,:] -= r
-        
+    @staticmethod 
     def transform(self, M):
         """
         Transform coordinates of molecule by matrix M and return new molecule.
@@ -188,23 +152,25 @@ class Molecule():
         :rtype: molsym.Molecule
         """
         new_mol = deepcopy(self)
-        new_mol.coords = np.dot(new_mol.coords,np.transpose(M))
+        new_mol.positions = np.dot(new_mol.positions, np.transpose(M))
         return new_mol
 
+    @staticmethod
     def distance_matrix(self):
         """
         Calculates the interatomic distance matrix as all pairwise distances between atoms.
 
         :return: Interatomic distance matrix
-        :rtype: NumPy array of shape (self.natoms,self.natoms)
+        :rtype: NumPy array of shape (len(self),len(self))
         """
-        dm = np.zeros((self.natoms,self.natoms))
-        for i in range(self.natoms):
-            for j in range(i,self.natoms):
-                dm[i,j] = np.sqrt(sum((self.coords[i,:]-self.coords[j,:])**2))
+        dm = np.zeros((len(self),len(self)))
+        for i in range(len(self)):
+            for j in range(i,len(self)):
+                dm[i,j] = np.sqrt(sum((self.positions[i,:]-self.positions[j,:])**2))
                 dm[j,i] = dm[i,j]
         return dm
 
+    @staticmethod
     def find_SEAs(self):
         """
         Find sets of symmetry equivalent atoms.
@@ -213,16 +179,16 @@ class Molecule():
         :return: List of symmetry equivalent atom sets
         :rtype: List[molsym.SEA]
         """
-        dm = self.distance_matrix()
+        dm = Molecule.distance_matrix(self)
         out = []
-        for i in range(self.natoms):
-            for j in range(i+1,self.natoms):
+        for i in range(len(self)):
+            for j in range(i+1,len(self)):
                 a_idx = np.argsort(dm[i,:])
                 b_idx = np.argsort(dm[j,:])
                 z = dm[i,a_idx] - dm[j,b_idx]
                 chk = True
                 for k in z:
-                    if abs(k) < self.tol:
+                    if abs(k) < self.info["tol"]:
                         continue
                     else:
                         chk = False
@@ -230,7 +196,7 @@ class Molecule():
                     out.append((i,j))
         skip = []
         SEAs = []
-        for i in range(self.natoms):
+        for i in range(len(self)):
             if i in skip:
                 continue
             else:

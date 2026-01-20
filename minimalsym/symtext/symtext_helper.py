@@ -9,11 +9,11 @@ def rotate_mol_to_symels(mol, paxis, saxis):
     Rotate molecule with symmetry defined by paxis and saxis to symmetry elements.
     paxis -> z axis and saxis -> x axis.
 
-    :type mol: molsym.Molecule
+    :type mol: Atoms object from ASE
     :type paxis: NumPy array of shape (3,)
     :type saxis: NumPy array of shape (3,)
     :return: New rotated molecule, rotation matrix, inverse rotation matrix
-    :rtype: (molsym.Molecule, NumPy array of shape (3,3), NumPy array of shape (3,3))
+    :rtype: (Atoms object from ASE, NumPy array of shape (3,3), NumPy array of shape (3,3))
     """
     if np.isclose(np.linalg.norm(paxis), 0.0, atol=global_tol): 
         # Symmetry is C1 and paxis not defined, just return mol
@@ -34,21 +34,21 @@ def rotate_mol_to_symels(mol, paxis, saxis):
         y = np.cross(z,x)
     rmat = np.column_stack((x,y,z)) # This matrix rotates z to paxis, etc., ...
     rmat_inv = rmat.T # ... so invert it to take paxis to z, etc.
-    new_mol = mol.transform(rmat_inv)
+    new_mol = Molecule.transform(mol, rmat_inv)
     return new_mol, rmat, rmat_inv
 
 def get_atom_mapping(mol, symels):
     """
     Map of each atom under each symmetry element.
 
-    :type mol: molsym.Molecule
+    :type mol: Atoms object from ASE
     :type symels: List[molsym.Symel]
     :return: Atom by Symel array
     :rtype: NumPy array of shape (natom, nsymel)
     """
     # symels after transformation
-    amap = np.zeros((mol.natoms, len(symels)), dtype=int)
-    for atom in range(mol.natoms):
+    amap = np.zeros((len(mol), len(symels)), dtype=int)
+    for atom in range(len(mol)):
         for (s, symel) in enumerate(symels):
             w = where_you_go(mol, atom, symel)
             if w is not None:
@@ -61,10 +61,10 @@ def get_linear_atom_mapping(mol, pg):
     """
     Atom map for linear point groups. Still under development.
     """
-    amap = np.array([atom for atom in range(mol.natoms)], dtype=int).reshape((mol.natoms,1))
+    amap = np.array([atom for atom in range(len(mol))], dtype=int).reshape((len(mol),1))
     if pg.family == "D":
-        ungerade_map = np.zeros((mol.natoms), dtype=int)
-        for atom in range(mol.natoms):
+        ungerade_map = np.zeros((len(mol)), dtype=int)
+        for atom in range(len(mol)):
             w = where_you_go(mol, atom, Symel("i", None, -1*np.eye(3), None, None, None))
             if w is not None:
                 ungerade_map[atom] = w
@@ -77,14 +77,14 @@ def where_you_go(mol, atom, symel):
     """
     Find the resulting atom after applying a symmetry operation
 
-    :type mol: molsym.Molecule
+    :type mol: Atoms object from ASE
     :type atom: int
     :type symel: molsym.Symel
     :rtype: int
     """
-    ratom = np.dot(symel.rrep, mol.coords[atom,:].T)
-    for i in range(mol.natoms):
-        if np.isclose(mol.coords[i,:], ratom, atol=mol.tol).all():
+    ratom = np.dot(symel.rrep, mol.positions[atom,:].T)
+    for i in range(len(mol)):
+        if np.isclose(mol.positions[i,:], ratom, atol=mol.info["tol"]).all():
             return i
     return None
 
