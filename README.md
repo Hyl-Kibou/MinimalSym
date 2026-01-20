@@ -1,5 +1,5 @@
 # MinimalSym
-A python package for handling molecular symmetry. Minimal modified version of MolSym. <a href=https://github.com/NASymmetry/MolSym>Molsym Repo</a>
+A python package for handling molecular symmetry for ASE's Atoms object. Minimal modified version of <a href=https://github.com/NASymmetry/MolSym>Molsym</a>.
 
 
 ## Capabilities
@@ -11,7 +11,6 @@ A python package for handling molecular symmetry. Minimal modified version of Mo
 
 ## Installing
 MinimalSym is tested with Python 3.12-3.13, but should work fro 3.9-3.13.
-Most Python environments come equipped with all but one dependency, `QCElemental` 
 
 ## Use example
 ```python

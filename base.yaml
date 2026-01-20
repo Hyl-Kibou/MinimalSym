@@ -7,7 +7,7 @@ dependencies:
     # Base
   - numpy>=2.0.0
   - python
-  - qcelemental>=0.28.0
+  - ase
   #- psi4
   - pytest
   - pytest-cov

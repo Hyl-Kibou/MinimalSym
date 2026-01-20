@@ -1,23 +1,23 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=77.0.3"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "MinimalSym"
-version = "0.1.0"
+version = "0.1.1"
 authors = [
     { name = "Sebastian Hernández", email = "s3b4s7i4nhg@gmail.com" }
 ]
 description = "A program for molecular symmetry detection. Minimal version of MolSym library."
 readme = "README.md"
-license = { file = "LICENSE.txt" }
+license = "MIT"
+license-files = ["LICENSE.txt"]
 classifiers = [
     "Programming Language :: Python :: 3"
     ]
 requires-python = ">=3.9"
 dependencies = [
     "numpy >= 1.23.4",
-    "qcelemental >= 0.25.1",
     "ase",
     ]
 

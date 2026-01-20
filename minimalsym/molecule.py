@@ -1,6 +1,4 @@
 import numpy as np
-import qcelemental as qcel
-from ase import Atoms
 from dataclasses import dataclass
 from copy import deepcopy
 import sys
@@ -30,93 +28,6 @@ class Molecule():
     Class dealing with molecule relevant information.
     Typically initiated from a QCSchema object.
     """
-
-    @staticmethod
-    def from_schema(cls, schema):
-        """
-        Class method for constructing a Molecule from a QCSchema object
-
-        :param schema: Schema dictionary to be converted to Molecule
-        :type schema: dict
-        :rtype: molsym.Molecule
-        """
-        atoms = schema["symbols"]
-        natoms = len(atoms)
-        coords = np.reshape(schema["geometry"], (natoms,3))
-        # As of now, QCElemental seems to have issues assigning masses, so I do it
-        masses = np.zeros(natoms)
-        for (idx, symb) in enumerate(atoms):
-            masses[idx] = qcel.periodictable.to_mass(symb)
-        mol = Atoms(symbols=atoms, positions=coords)
-        mol.set_masses(masses)
-        return mol
-    
-    @staticmethod
-    def from_psi4_molecule(cls, mol):
-        """
-        Class method for constructing a Molecule from a QCSchema object
-
-        :param schema: Schema dictionary to be converted to Molecule
-        :type schema: dict
-        :rtype: molsym.Molecule
-        """
-        if "psi4" not in sys.modules:
-            raise ImportError("Psi4 is required to use this function")
-        atoms = [mol.symbol(i) for i in range(mol.natom())]
-        coords = mol.geometry().to_array()
-        masses = [mol.mass(i) for i in range(mol.natom())]
-        mol = Atoms(symbols=atoms, positions=coords)
-        mol.set_masses(masses)
-        return mol
-
-    @staticmethod
-    def from_file(cls, fn, keep_angstrom=False):
-        """
-        Class method for constructing a Molecule from an *.xyz file
-
-        :param fn: Filename
-        :type fn: str
-        :rtype: molsym.Molecule
-        """
-        with open(fn, "r") as lfn:
-            strang = lfn.read()
-        
-        schema = qcel.models.Molecule.from_data(strang).dict()
-        if keep_angstrom:
-            schema["geometry"] *= qcel.constants.bohr2angstroms
-        return Molecule.from_schema(schema)
-
-    @staticmethod
-    def from_psi4_schema(cls, schema):
-        """
-        Class method for constructing a Molecule from a QCSchema object generated in Psi4.
-        Schemas coming from Psi4 are different for some reason?
-
-        :param schema: Schema dictionary to be converted to Molecule
-        :type schema: dict
-        :rtype: molsym.Molecule
-        """
-        atoms = schema["elem"] # was symbols
-        natoms = len(atoms)
-        coords = np.reshape(schema["geom"], (natoms,3)) # was geometry
-        # As of now, QCElemental seems to have issues assigning masses, so I do it
-        masses = np.zeros(natoms)
-        for (idx, symb) in enumerate(atoms):
-            masses[idx] = qcel.periodictable.to_mass(symb)
-        mol = Atoms(symbols=atoms, positions=coords)
-        mol.set_masses(masses)
-        return mol
-
-    @staticmethod
-    def to_xyz_string(self, already_angstrom=False):
-        # Will save xyz in Angstrom, undoing the previous
-        # Ang->Bohr from Molecule.from_schema
-        if already_angstrom:
-            self.positions /= qcel.constants.bohr2angstroms
-        qcmol = qcel.models.Atoms(
-            **{"symbols": self.get_chemical_symbols(), 
-            "geometry": self.positions})
-        return qcmol.to_string("xyz")        
 
     @staticmethod
     def find_com(self): # deprecate!

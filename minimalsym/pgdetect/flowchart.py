@@ -17,6 +17,8 @@ def find_point_group(mol):
     :rtype: (str, NumPy array of shape (3,), NumPy array of shape (3,))
     """
 
+    mol = mol.copy()
+
     paxis = [0,0,0]
     saxis = [0,0,0]
     moit = calcmoit(mol)

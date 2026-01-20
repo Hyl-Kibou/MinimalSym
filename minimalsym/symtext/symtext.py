@@ -1,6 +1,5 @@
 import numpy as np
 import re
-import qcelemental as qcel
 from ..molecule import Molecule
 from minimalsym import find_point_group
 from .point_group import PointGroup
@@ -79,20 +78,6 @@ class Symtext():
         atom_map = get_atom_mapping(mol, symels)
         mult_table = build_mult_table(symels)
         return Symtext(mol, rotate_to_std, reverse_rotate, pg, symels, atom_map, mult_table, irreps, irrep_mats)
-
-    @classmethod
-    def from_file(cls, fn):
-        """
-        Class method for creating a Symtext from a *.xyz file.
-
-        :type fn: str
-        :rtype: molsym.Symtext
-        """
-        with open(fn, "r") as lfn:
-            strang = lfn.read()
-        schema = qcel.models.Molecule.from_data(strang).dict()
-        mol = Molecule.from_schema(schema)
-        return cls.from_molecule(mol)
     
     def get_character_table(self):
         """
