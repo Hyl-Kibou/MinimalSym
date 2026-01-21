@@ -13,11 +13,17 @@ readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE.txt"]
 classifiers = [
-    "Programming Language :: Python :: 3"
+    "Programming Language :: Python :: 3",
+    "Intended Audience :: Science/Research"
     ]
 requires-python = ">=3.9"
 dependencies = [
-    "numpy >= 1.23.4",
-    "ase",
+    "numpy >= 1.23.4"
     ]
 
+[project.optional-dependencies]
+docs = [
+  "mkdocs",
+  "mkdocs-material",
+  "mkdocstrings[python]"
+]
