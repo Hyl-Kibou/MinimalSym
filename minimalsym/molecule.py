@@ -30,7 +30,7 @@ class Molecule():
     """
 
     @staticmethod
-    def find_com(self): # deprecate!
+    def find_com(mol): # deprecate!
         """
         Get center of mass of molecule.
 
@@ -38,22 +38,22 @@ class Molecule():
         :rtype: NumPy array of shape (3,)
         """
 
-        return self.get_center_of_mass()
+        return mol.get_center_of_mass()
 
     @staticmethod
-    def is_at_com(self):
+    def is_at_com(mol):
         """
         Checks if molecule is at center of mass already.
 
         :rtype: bool
         """
-        if sum(abs(self.get_center_of_mass())) < self.info["tol"]:
+        if sum(abs(mol.get_center_of_mass())) < mol.info["tol"]:
             return True
         else:
             return False    
 
     @staticmethod 
-    def transform(self, M):
+    def transform(mol, M):
         """
         Transform coordinates of molecule by matrix M and return new molecule.
 
@@ -62,27 +62,27 @@ class Molecule():
         :return: Molecule with transformed atom coordinates
         :rtype: molsym.Molecule
         """
-        new_mol = deepcopy(self)
+        new_mol = deepcopy(mol)
         new_mol.positions = np.dot(new_mol.positions, np.transpose(M))
         return new_mol
 
     @staticmethod
-    def distance_matrix(self):
+    def distance_matrix(mol):
         """
         Calculates the interatomic distance matrix as all pairwise distances between atoms.
 
         :return: Interatomic distance matrix
-        :rtype: NumPy array of shape (len(self),len(self))
+        :rtype: NumPy array of shape (len(mol),len(mol))
         """
-        dm = np.zeros((len(self),len(self)))
-        for i in range(len(self)):
-            for j in range(i,len(self)):
-                dm[i,j] = np.sqrt(sum((self.positions[i,:]-self.positions[j,:])**2))
+        dm = np.zeros((len(mol),len(mol)))
+        for i in range(len(mol)):
+            for j in range(i,len(mol)):
+                dm[i,j] = np.sqrt(sum((mol.positions[i,:]-mol.positions[j,:])**2))
                 dm[j,i] = dm[i,j]
         return dm
 
     @staticmethod
-    def find_SEAs(self):
+    def find_SEAs(mol):
         """
         Find sets of symmetry equivalent atoms.
         Permutations of the distance matrix reveal which atoms form symmetry equivalent sets.
@@ -90,16 +90,16 @@ class Molecule():
         :return: List of symmetry equivalent atom sets
         :rtype: List[molsym.SEA]
         """
-        dm = Molecule.distance_matrix(self)
+        dm = Molecule.distance_matrix(mol)
         out = []
-        for i in range(len(self)):
-            for j in range(i+1,len(self)):
+        for i in range(len(mol)):
+            for j in range(i+1,len(mol)):
                 a_idx = np.argsort(dm[i,:])
                 b_idx = np.argsort(dm[j,:])
                 z = dm[i,a_idx] - dm[j,b_idx]
                 chk = True
                 for k in z:
-                    if abs(k) < self.info["tol"]:
+                    if abs(k) < mol.info["tol"]:
                         continue
                     else:
                         chk = False
@@ -107,7 +107,7 @@ class Molecule():
                     out.append((i,j))
         skip = []
         SEAs = []
-        for i in range(len(self)):
+        for i in range(len(mol)):
             if i in skip:
                 continue
             else:
