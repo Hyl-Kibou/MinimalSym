@@ -61,7 +61,7 @@ class Symtext():
     @classmethod
     def from_molecule(cls, mol):
         """
-        Class method for creating a Symtext from a molsym.Molecule
+        Class method for creating a Symtext from a ase.Atoms
 
         :type mol: Atoms object from ASE
         :rtype: molsym.Symtext
@@ -71,6 +71,7 @@ class Symtext():
         pg = PointGroup.from_string(pg_str)
         # Return transformation matrix so properties can be rotated to original configuration
         mol, reverse_rotate, rotate_to_std = rotate_mol_to_symels(mol, paxis, saxis)
+        mol.info["pg"] = pg_str
         symels, irreps, irrep_mats = pg_to_symels(pg.str)
         if pg.is_linear:
             atom_map = get_linear_atom_mapping(mol, pg)
