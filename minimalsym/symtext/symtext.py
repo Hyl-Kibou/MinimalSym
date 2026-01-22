@@ -37,7 +37,8 @@ class Symtext():
             self.order = len(symels)
         self.irreps = irreps
         self.irrep_mats = irrep_mats
-        self.get_character_table()
+        if(self.mult_table is not None):
+            self.get_character_table()
 
     def __len__(self):
         return len(self.symels)
