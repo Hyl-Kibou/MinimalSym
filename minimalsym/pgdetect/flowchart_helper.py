@@ -1,5 +1,6 @@
 import numpy as np
 from ..symtools import *
+from ..symtext.symtext_helper import rotate_mol_to_symels
 
 class RotationElement():
     """
@@ -414,11 +415,22 @@ def mol_is_planar(mol):
 
     :type mol: ase.Atoms
     :rtype: bool
-    """
+    """    
     rank = np.linalg.matrix_rank(mol.positions, tol=mol.info["tol"])
+
     if rank < 3:
+        axis = planar_mol_axis(mol)
+        new_mol, _, _ = rotate_mol_to_symels(mol, axis, np.array([0, 0, 0]))
+        matrix = np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, -1.0]])
+
+        molB = Molecule.transform(new_mol, matrix)
+        for i in range(len(mol)):
+            # Check if atoms are about at the same Cartesian point
+            if not np.isclose(new_mol.positions[i,:], molB.positions[i,:], atol=mol.info["tol"]).all():                
+                return False        
         return True
     return False
+
 
 def planar_mol_axis(mol):
     """

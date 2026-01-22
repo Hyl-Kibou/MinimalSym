@@ -54,7 +54,7 @@ def get_atom_mapping(mol, symels):
             if w is not None:
                 amap[atom,s] = w
             else:
-                raise Exception(f"Atom {atom} not mapped to another atom under symel {symel}")
+                raise Exception(f"Atom {atom} {mol.info["num"]} not mapped to another atom under symel {symel}\nPositions: {mol.positions}")
     return amap
 
 def get_linear_atom_mapping(mol, pg):
