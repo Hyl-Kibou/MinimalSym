@@ -135,6 +135,19 @@ def find_rotations(mol, rotation_set):
             out.append(i)
     return out
 
+def linear_mol_axis(mol):
+    """
+    Returns the axis that best aligns with a linear molecule.
+
+    :type mol: ase.Atoms
+    :rtype: NumPy array of shape (3,) or None
+    """
+    coords = mol.positions - mol.positions.mean(axis=0)
+    _, _, vh = np.linalg.svd(coords, full_matrices=False)
+    axis = vh[0]
+    axis = normalize(axis)
+    return axis
+
 def find_a_c2(mol, SEAs):
     """
     Search for any possible C_2 rotation axes, return the first one found.
@@ -430,7 +443,6 @@ def mol_is_planar(mol):
                 return False        
         return True
     return False
-
 
 def planar_mol_axis(mol):
     """

@@ -31,6 +31,7 @@ def symmetrize(mol_in, asym_tol=0.05):
                 # Project onto z-axis
                 for atom_j in sea.subset[:]:
                     mol.positions[atom_j,:] = np.array([0.0, 0.0, np.dot(mol.positions[atom_j,:], z)])
+                break
             elif asym_symtext.pg.family == "D":
                 if atom_i == asym_symtext.atom_map[atom_i, 1]:
                     # Atom i must be at origin
@@ -41,8 +42,7 @@ def symmetrize(mol_in, asym_tol=0.05):
                     mol.positions[atom_j,:] = np.array([0.0, 0.0, np.dot(mol.positions[atom_j,:], z)])
                     if atom_j == asym_symtext.atom_map[atom_i, 1]:
                         mol.positions[atom_j,:] = np.dot(-1*np.eye(3), mol.positions[atom_i,:])
-            mol.info["tol"] = 1e-12
-            return mol
+                continue
         for g in range(1, asym_symtext.order):
             if atom_i == asym_symtext.atom_map[atom_i, g]:
                 # Atom i invariant under g

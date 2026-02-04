@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "MinimalSym"
-version = "0.1.1"
+version = "0.1.3"
 authors = [
     { name = "Sebastian Hernández", email = "s3b4s7i4nhg@gmail.com" }
 ]

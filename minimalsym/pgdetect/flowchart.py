@@ -25,6 +25,7 @@ def find_point_group(mol):
     Ia_mol, Ib_mol, Ic_mol = np.sort(np.linalg.eigh(moit)[0])
     # Linear tops
     if np.isclose(Ia_mol, 0.0, atol=mol.info["tol"]):
+        paxis = linear_mol_axis(mol)
         if isequivalent(mol, Molecule.transform(mol, inversion_matrix())):
             pg = "D0h"
         else:
