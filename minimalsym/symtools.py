@@ -1,16 +1,21 @@
 import numpy as np
-from .molecule import *
+from .molecule import global_tol
 
-def rotation_matrix(axis, theta):
+def rotation_matrix(axis, theta):    
     """
-    Rotation matrix about an axis by theta in radians.
+    Create rotation matrix about an axis by theta in radians.
 
-    :param axis: Cartesian vector defining rotation axis
-    :param theta: Angle of rotation in radians
-    :type axis: NumPy array of shape (3,)
-    :type theta: float
-    :return: Matrix defining rotation on column vector
-    :rtype: NumPy array of shape (3,3)
+    Parameters
+    ----------
+    axis: np.array
+        Cartesian vector defining rotation axis, shape(3,).
+    theta: float
+        Angle of rotation in radians.
+
+    Returns
+    -------
+    np.array
+        Matrix defining rotation on column vector, shape (3,3).
     """
     kmat1 = np.array([[0.0, -axis[2], axis[1]], 
                       [axis[2], 0.0, -axis[0]], 
@@ -19,14 +24,19 @@ def rotation_matrix(axis, theta):
     rodriguesrm = np.eye(3) + np.sin(theta)*kmat1 + (1.0 - np.cos(theta))*kmat2
     return rodriguesrm
 
-def reflection_matrix(axis):
+def reflection_matrix(axis):    
     """
-    Reflection matrix about a plane defined by its normal vector.
+    Create reflection matrix about a plane defined by its normal vector.
 
-    :param axis: Cartesian vector defining the plane normal vector
-    :type axis: NumPy array of shape (3,)
-    :return: Matrix defining reflection on column vector
-    :rtype: NumPy array of shape (3,3)
+    Parameters
+    ----------
+    axis: np.array
+        Cartesian vector defining the plane normal vector, shape(3,).
+
+    Returns
+    -------
+    np.array
+        Matrix defining reflection on column vector, shape (3,3).
     """
     M = np.zeros((3,3))
     for i in range(3):
@@ -40,10 +50,12 @@ def reflection_matrix(axis):
 
 def inversion_matrix():
     """
-    Cartesian inversion matrix.
+    Create cartesian inversion matrix.
 
-    :return: Matrix defining inversion
-    :rtype: NumPy array of shape(3,3)
+    Returns
+    -------
+    np.array
+        Matrix defining inversion, shape(3,3).
     """
     return -1*np.eye(3)
 
@@ -51,12 +63,17 @@ def Cn(axis, n):
     """
     Wrapper around rotation_matrix for producing a C_n rotation about axis.
 
-    :param axis: Cartesian vector defining rotation axis
-    :param n: Defines rotation angle by theta = 2 pi / n
-    :type axis: NumPy array of shape (3,)
-    :type n: int
-    :return: Matrix defining proper rotation on column vector
-    :rtype: NumPy array of shape (3,3)
+    Parameters
+    ----------
+    axis: np.array
+        Cartesian vector defining rotation axis, shape(3,).
+    n: int
+        Defines rotation angle by theta = 2 pi / n.
+    
+    Returns
+    -------
+    np.array
+        Matrix defining proper rotation on column vector, shape(3,3).
     """
     theta = 2*np.pi/n
     return rotation_matrix(axis, theta)
@@ -65,12 +82,17 @@ def Sn(axis, n):
     """
     Improper rotation S_n about an axis.
     
-    :param axis: Cartesian vector defining rotation axis
-    :param n: Defines rotation angle by theta = 2 pi / n
-    :type axis: NumPy array of shape (3,)
-    :type n: int
-    :return: Matrix defining improper rotation on column vector
-    :rtype: NumPy array of shape (3,3)
+    Parameters
+    ----------
+    axis: np.array
+        Cartesian vector defining rotation axis, shape(3,).
+    n: int
+        Defines rotation angle by theta = 2 pi / n.
+
+    Returns
+    -------
+    np.array
+        Matrix defining improper rotation on column vector, shape(3,3)
     """
     return np.dot(reflection_matrix(axis), Cn(axis, n))
 
@@ -78,12 +100,17 @@ def isequivalent(A,B):
     """
     Returns True if molecule A and B are equivalent with respect to permutation of like atoms.
 
-    :param A: Molecule A
-    :param B: Molecule B
-    :type A: Atoms object from ASE
-    :type B: Atoms object from ASE
-    :return: True if equivalent, False if not
-    :rtype: bool
+    Parameters
+    ----------
+    A: ase.Atoms
+        Molecule A.
+    B: ase.Atoms
+        Molecule B.
+
+    Returns
+    -------
+    bool
+        True if equivalent, False if not.
     """
     if A.info["tol"] >= B.info["tol"]:
         eq_tol = A.info["tol"]
@@ -109,11 +136,16 @@ def isequivalent(A,B):
 def calcmoit(atoms):
     """
     Calculates the moment of inertia tensor for a list of atoms.
-    
-    :param atoms: Set of atoms
-    :type atoms: Atoms object from ASE
-    :return: Cartesian moment of inertia tensor
-    :rtype: NumPy array of shape (3,3)
+
+    Parameters
+    ----------
+    atoms: ase.Atoms
+        Set of atoms.
+
+    Returns
+    -------
+    np.array
+        Cartesian moment of inertia tensor, shape(3,3).
     """
     I = np.zeros((3,3))
     atoms.translate(-atoms.get_center_of_mass())
@@ -131,10 +163,15 @@ def normalize(a):
     """
     Normalize vector a to unit length, return None if the input vector is of zero length.
 
-    :param a: Vector of arbitrary magnitude
-    :type a: NumPy array of shape (n,)
-    :return: Normalized vector or None if the magnitude of a is less than the global tolerance
-    :rtype: NumPy array of shape (n,) or None
+    Parameters
+    ----------
+    a: np.array
+        Vector of arbitrary magnitude, shape(n,).
+
+    Returns
+    -------
+    np.array or None
+        Normalized vector shape(n,) or None if the magnitude of ``a`` is less than the global tolerance.
     """
     n = np.linalg.norm(a)
     if n <= global_tol:
@@ -145,14 +182,19 @@ def issame_axis(a, b, tol=global_tol):
     """
     Return True if vectors a and b are colinear within the global tolerance.
 
-    :param a: Vector a
-    :param b: Vector b
-    :param tol: Tolerance for error
-    :type a: NumPy array of shape (n,)
-    :type b: NumPy array of shape (n,)
-    :type tol: float
-    :return: True if vectors are colinear, False if not colinear or if either vector has zero length
-    :rtype: bool
+    Paremeters
+    ----------
+    a: np.array
+        Vector a, shape(n,).
+    b: np.array
+        Vector b, shape(n,).
+    tol: float
+        Tolerance for error, default is ``global_tol``.
+
+    Returns
+    -------
+    bool
+        True if vectors are colinear, False if not colinear or if either vector has zero length.
     """
     A = normalize(a)
     B = normalize(b)
@@ -164,10 +206,18 @@ def issame_axis(a, b, tol=global_tol):
 def isfactor(n,a):
     """
     Return True if a divides n.
-    
-    :type n: int
-    :type a: int
-    :rtype: bool
+
+    Parameters
+    ----------
+    n: int
+        Dividend.
+    a: int
+        Divisor.
+
+    Returns
+    -------
+    bool
+        True if ``a`` divides ``n`` with remainder 0.
     """
     if n % a == 0:
         return True
@@ -178,10 +228,15 @@ def reduce(n, i):
     """
     Divide n and i by their greatest common divisor g.
 
-    :type n: int
-    :type i: int
-    :return: Tuple of n/g and i/g
-    :rtype: (int, int)
+    Parameters
+    ----------
+    n: int
+    i: int
+
+    Returns
+    -------
+    Tuple
+        Tuple of n/g and i/g, shape(int, int).
     """
     g = gcd(n, i)
     return n//g, i//g # floor divide to get an int, there should never be a remainder since we are dividing by the gcd
@@ -190,10 +245,15 @@ def gcd(A, B):
     """
     A quick implementation of the Euclid algorithm for finding the greatest common divisor between A and B.
     
-    :type A: int
-    :type B: int
-    :return: Greatest common divisor between A and B
-    :rtype: int
+    Parameters
+    ----------
+    A: int
+    B: int
+
+    Returns
+    -------
+    int
+        Greatest common divisor between A and B.
     """
     a = max(A,B)
     b = min(A,B)

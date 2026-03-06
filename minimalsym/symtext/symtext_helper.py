@@ -1,6 +1,7 @@
+import numpy as np
 from .point_group import PointGroup
+from ..molecule import Molecule, global_tol
 from ..symtools import normalize
-from .multiplication_table import *
 import re
 from .general_irrep_mats import Symel
     

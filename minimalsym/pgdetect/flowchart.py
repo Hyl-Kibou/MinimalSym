@@ -1,21 +1,39 @@
 import numpy as np
-from ..symtools import *
-from .flowchart_helper import *
+from ..symtools import rotation_matrix, inversion_matrix, Sn, isequivalent, calcmoit, normalize
+from .flowchart_helper import find_rotation_sets, find_rotations, linear_mol_axis, find_a_c2, is_there_ortho_c2, num_C2, highest_order_axis, is_there_sigmah, is_there_sigmav, mol_is_planar, planar_mol_axis, find_C3s_for_Ih, find_C4s_for_Oh
 from ..molecule import Molecule
+from typing import TYPE_CHECKING
 
-def find_point_group(mol):
+if TYPE_CHECKING:
+    from ase import Atoms
+
+def find_point_group(mol: "Atoms"):
     """
     Find the point group of a molecule.
-    Bases on the algorithm developed by:
+
+    Returns the point group as a string, and primary and secondary axis
+    in order to define an orienation of the molecule with resepct to
+    the symmetry elements generated later.
+
+    Based on the algorithm developed by:
         Beruski, Otávio; Vidal, Luciano N. Algorithms for computer detection of 
         symmetry elements in molecular systems, J. Comp. Chem, 2013 doi:10.1002/jcc.23493
-    Returns a primary and secondary axis in order to define an orienation of the molecule
-    with resepct to the symmetry elements generated later.
+        
     
-    :type mol: Atoms object from ASE
-    :return: Schoenflies point group string, primary axis, and secondary axis
-    :rtype: (str, NumPy array of shape (3,), NumPy array of shape (3,))
-    """
+    Parameters
+    ----------
+    mol: ase.Atoms
+        Molecule which to find point group.
+
+    Returns
+    -------
+    tuple (str, (np.array, np.array))
+        Schoenflies point group string, primary axis, and secondary axis of shape(3,).
+    """    
+    try:
+        mol.info['tol']
+    except KeyError:
+        raise Exception(f"Atoms object tolerance hasn't been set. Set it with Atoms.info['tol']=.")
 
     mol = mol.copy()
 

@@ -7,15 +7,18 @@ global_tol = 1e-8 # TODO It would be nice to get rid of this...
 @dataclass
 class SEA():
     """
-    SEA: symmetry equivalent atoms.
+    Symmetry equivalent atoms (SEA).
+
     SEAs are atoms that can be swapped with no distinguishable change in the molecule.
 
-    :param label: Optionally defines rotor type of SEA set (e.g. Single Atom, Linear, Spherical, Regular Polygon, Oblate Symmetric Top, etc.)
-    :param subset: Sublist of atom indices in molecule that constitute the SEA set
-    :param axis: Optionally defines possible rotational symmetry vector
-    :type label: str or None
-    :type subset: NumPy array of integers
-    :type axis: NumPy array of shape (3,) or None
+    Parameters
+    ----------
+    label : str or None, optional
+        Optionally defines rotor type of SEA set (e.g. Single Atom, Linear, Spherical, Regular Polygon, Oblate Symmetric Top, etc.)
+    subset: np.array
+        Sublist of atom indices in molecule that define the SEA set, shape (N,)
+    axis: np.array or None, optional
+        Optional possible rotational symmetry vector, shape (3,)
     """
     label:str
     subset:np.array
@@ -25,8 +28,11 @@ class SEA():
 
 class Molecule():
     """
-    Class dealing with molecule relevant information.
-    Typically initiated from a QCSchema object.
+    Molecular structure and geometry utilities.
+
+    This class provides static helper methods for computing ase.Atoms
+    molecular properties such as the center of mass, distance matrices,
+    symmetry equivalent atoms, and coordinate transformations.
     """
 
     @staticmethod
@@ -34,8 +40,21 @@ class Molecule():
         """
         Get center of mass of molecule.
 
-        :return: Center of mass
-        :rtype: NumPy array of shape (3,)
+        Parameters
+        ----------
+        mol: ase.Atoms
+            Molecule object.
+
+        Returns
+        -------
+        np.array
+            Center of mass vector of shape (3,)
+
+        Warnings
+        --------
+        Deprecated since version 0.1.0.
+        This method will be removed in Minimalsym 1.0.0.
+        Use ``ase.Atoms.get_center_of_mass`` instead.
         """
 
         return mol.get_center_of_mass()
@@ -43,24 +62,41 @@ class Molecule():
     @staticmethod
     def is_at_com(mol):
         """
-        Checks if molecule is at center of mass already.
+        Check if molecule is centered at its center of mass already.
 
-        :rtype: bool
+        Parameters
+        ----------
+        mol: ase.Atoms
+            Molecule object.
+
+        Returns
+        -------
+        bool
+            True if the center of mass is within the tolerance defined by
+            ``mol.info["tol"]``, False otherwise.
+
         """
         if sum(abs(mol.get_center_of_mass())) < mol.info["tol"]:
             return True
         else:
-            return False    
+            return False
 
-    @staticmethod 
+    @staticmethod
     def transform(mol, M):
         """
         Transform coordinates of molecule by matrix M and return new molecule.
 
-        :param M: Transformation matrix (e.g. rotation, reflection, etc.)
-        :type M: NumPy array (3,3)
-        :return: Molecule with transformed atom coordinates
-        :rtype: molsym.Molecule
+        Parameters
+        ----------
+        mol: ase.Atoms
+            Molecule object.
+        M: np.array
+            Transformation matrix (e.g. rotation, reflection, etc.), shape (3,3)
+
+        Returns
+        -------
+        ase.Atoms
+            Molecule with transformed atom coordinates
         """
         new_mol = deepcopy(mol)
         new_mol.positions = np.dot(new_mol.positions, np.transpose(M))
@@ -69,10 +105,17 @@ class Molecule():
     @staticmethod
     def distance_matrix(mol):
         """
-        Calculates the interatomic distance matrix as all pairwise distances between atoms.
+        Calculate the interatomic distance matrix as all pairwise distances between atoms.
 
-        :return: Interatomic distance matrix
-        :rtype: NumPy array of shape (len(mol),len(mol))
+        Parameters
+        ----------
+        mol: ase.Atoms
+            Molecule object.
+
+        Returns
+        -------
+        np.array
+            Interatomic distance matrix, shape(len(mol),len(mol))
         """
         dm = np.zeros((len(mol),len(mol)))
         for i in range(len(mol)):
@@ -87,8 +130,15 @@ class Molecule():
         Find sets of symmetry equivalent atoms.
         Permutations of the distance matrix reveal which atoms form symmetry equivalent sets.
 
-        :return: List of symmetry equivalent atom sets
-        :rtype: List[molsym.SEA]
+        Parameters
+        ----------
+        mol: ase.Atoms
+            Molecule object.
+
+        Returns
+        -------
+        List[molsym.SEA]
+            List of symmetry equivalent atom sets
         """
         dm = Molecule.distance_matrix(mol)
         out = []

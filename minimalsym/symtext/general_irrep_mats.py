@@ -2,7 +2,7 @@ import numpy as np
 from numpy.linalg import matrix_power
 from dataclasses import dataclass
 from .point_group import PointGroup
-from ..symtools import *
+from ..symtools import reflection_matrix, inversion_matrix, Cn, Sn, normalize, reduce
 from copy import deepcopy
 from .symel import generate_T, generate_Th, generate_Td, generate_O, generate_Oh, generate_I, generate_Ih
 from .irrep_mats import irrm_T, irrm_Th, irrm_Td, irrm_O, irrm_Oh, irrm_I, irrm_Ih

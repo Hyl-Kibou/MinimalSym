@@ -1,0 +1,39 @@
+site_name: MinimalSym
+theme:
+  name: material
+  features:
+    - content.code.copy
+    - navigation.sections
+    - navigation.expand
+    - toc.follow
+
+repo_url: https://github.com/yourusername/minimalsym
+repo_name: minimalsym
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: numpy
+            show_source: false            
+            show_submodules: true            
+
+markdown_extensions:
+  - pymdownx.highlight:
+      use_pygments: true
+  - pymdownx.superfences
+  - pymdownx.inlinehilite  
+  - pymdownx.snippets
+  - admonition
+  - pymdownx.details
+
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Usage: usage.md
+  - API:
+      - Overview: api/index.md
+      - Public: api/public.md
+      - Internal: api/internal.md

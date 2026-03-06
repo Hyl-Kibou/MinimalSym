@@ -7,10 +7,9 @@ It is a minimal, modified version of [MolSym](https://github.com/NASymmetry/MolS
 
 ## Features
 
-* [Point group detection](https://github.com/NASymmetry/MolSym/wiki/Point-group-detection)
-* [Molecule symmetrization](https://github.com/NASymmetry/MolSym/wiki/Symmetrizing-a-molecule)
-* Symmetry element generation
-* Character table generation
+* Point group detection
+* Molecule symmetrization
+* ASE Atoms-native workflow
 
 ---
 
@@ -31,7 +30,7 @@ Symmetrizing a water molecule and detecting its point group:
 ```python
 from ase import Atoms
 import numpy as np
-from minimalsym.symmetrize import symmetrize
+from minimalsym import symmetrize
 
 theta = np.radians(104.5)
 

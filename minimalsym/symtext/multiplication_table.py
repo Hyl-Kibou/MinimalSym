@@ -2,7 +2,7 @@ import numpy as np
 import itertools
 import re
 #from .symel import pg_to_symels
-from ..symtools import *
+from ..symtools import rotation_matrix, normalize, issame_axis
 from .general_irrep_mats import pg_to_symels
 
 def multifly(symels, A, B):

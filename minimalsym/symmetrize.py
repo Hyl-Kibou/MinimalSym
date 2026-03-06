@@ -1,21 +1,32 @@
 import numpy as np
 from .molecule import Molecule
 from .symtext.symtext import Symtext
+from typing import TYPE_CHECKING
 
-def symmetrize(mol_in, asym_tol=0.05):
+if TYPE_CHECKING:
+    from ase import Atoms
+
+
+def symmetrize(mol_in: "Atoms", asym_tol: float = 0.05) -> "Atoms":
     """
-    Symmetrizes a molecule to a detectable low tolerance point group.
+    Symmetrizes the geometry of a molecule to a detectable low tolerance point group.
+    
     Constructs a molsym.Symtext for mol_in with tolerance asym_tol.
     The atoms are then projected onto the symmetry elements in the Symtext.
     The tolerance of the returned molecule is set to 1e-12.
 
-    :param mol_in: Molecule to be symmetrized.
-    :param asym_tol: Tolerance for asymmetry in mol_in, default is 0.05
-    :type mol_in: Atoms object from ASE
-    :type asym_tol: float
-    :return: Symmetrized molecule
-    :rtype: Atoms object from ASE
-    """    
+    Parameters
+    ----------
+    mol_in: ase.Atoms
+        Molecule object to be symmetrized.
+    asym_tol: float
+        Tolerance for asymmetry in mol_in, default is 0.05.
+
+    Returns
+    -------
+    ase.Atoms
+        Symmetrized Atoms molecule.
+    """
     mol_in = mol_in.copy()
 
     mol_in.info["tol"] = asym_tol
