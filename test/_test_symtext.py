@@ -1,11 +1,14 @@
 import pytest
 import numpy as np
-import molsym
-#from molsym.symtext.symel import pg_to_symels
-#from molsym.symtext.character_table import pg_to_chartab, grab_class_orders
-from molsym.symtext.general_irrep_mats import pg_to_symels
-from molsym.symtext.symtext_helper import rotate_mol_to_symels
-from molsym.symtext.multiplication_table import build_mult_table
+import minimalsym
+#from minimalsym.symtext.symel import pg_to_symels
+#from minimalsym.symtext.character_table import pg_to_chartab, grab_class_orders
+from minimalsym.symtext.general_irrep_mats import pg_to_symels
+from minimalsym.symtext.symtext_helper import rotate_mol_to_symels
+from minimalsym.symtext.multiplication_table import build_mult_table
+
+from minimalsym.symtext.symtext import Symtext
+from ._test_helper import read_file
 
 # C1, Ci, Cs, C2v, C3h, S8, D6h, Td, Oh, Ih
 classes_test_set = [
@@ -118,7 +121,7 @@ rotation_matrices = [
 
 @pytest.mark.parametrize("paxis, saxis, answer", [(axes_test_set[i][0], axes_test_set[i][1], rotation_matrices[i]) for i in range(len(axes_test_set))])
 def test_rotate_mol_to_symels(paxis, saxis, answer):
-    mol = molsym.Molecule.from_file("test/xyz/water.xyz")
+    mol = read_file("test/xyz/water.xyz")
     new_mol, rmat, rmat_inv = rotate_mol_to_symels(mol, paxis, saxis)
     print(rmat)
     print(answer)
@@ -167,13 +170,13 @@ order_test_set = [1,4,6,24,24]
 @pytest.mark.parametrize("i", [i for i in range(len(fns))])
 def test_Symtext(i):
     angstrom_per_bohr = 0.529177249
-    mol = molsym.Molecule.from_file("test/xyz/"+fns[i]+".xyz")
-    mol = molsym.symmetrize(mol)
-    symtext = molsym.Symtext.from_molecule(mol)
+    mol = read_file("test/xyz/"+fns[i]+".xyz")
+    mol = minimalsym.symmetrize(mol)
+    symtext = Symtext.from_molecule(mol)
     # Add mult table, symels, ctab, class map?
-    assert (mol_test_set[i][0] == mol.atoms).all()
-    #assert np.isclose(mol_test_set[i][1]*angstrom_per_bohr, mol.coords).all() # QCElemental performed undesired unit conv. in test set
-    assert np.isclose(mol_test_set[i][1], mol.coords).all() # QCElemental performed undesired unit conv. in test set
+    assert (mol_test_set[i][0] == np.array(mol.get_chemical_symbols())).all()
+    #assert np.isclose(mol_test_set[i][1]*angstrom_per_bohr, mol.positions).all() # QCElemental performed undesired unit conv. in test set
+    assert np.isclose(mol_test_set[i][1], np.array(mol.positions)).all() # QCElemental performed undesired unit conv. in test set
     assert symtext.pg.str == pgs[i]
     assert (symtext.atom_map == atom_map_test_set[i]).all()
     assert complex_test_set[i] == symtext.complex
@@ -204,12 +207,12 @@ D2h_subgroup_order_test_set = [1,4,2,4,8]
 
 @pytest.mark.parametrize("i", [i for i in range(len(fns_D2h_subgroups))])
 def test_Symtext_largest_D2h_subgroup(i):
-    mol = molsym.Molecule.from_file("test/xyz/"+fns_D2h_subgroups[i]+".xyz")
-    mol = molsym.symmetrize(mol)
-    symtext = molsym.Symtext.from_molecule(mol)
+    mol = read_file("test/xyz/"+fns_D2h_subgroups[i]+".xyz")
+    mol = minimalsym.symmetrize(mol)
+    symtext = Symtext.from_molecule(mol)
     symtext = symtext.largest_D2h_subgroup()
-    #assert (mol_test_set[i][0] == mol.atoms).all()
-    #assert np.isclose(mol_test_set[i][1], mol.coords).all()
+    #assert (mol_test_set[i][0] == mol.get_chemical_symbols()).all()
+    #assert np.isclose(mol_test_set[i][1], mol.positions).all()
     assert symtext.pg.str == D2h_subgroup_pgs[i]
     assert (symtext.atom_map == D2h_subgroup_atom_map_test_set[i]).all()
     assert D2h_subgroup_complex_test_set[i] == symtext.complex
@@ -250,11 +253,11 @@ subgroup_order_test_set = [2,12,3,None]
 
 @pytest.mark.parametrize("i", [i for i in range(len(subgroup_fns))])
 def test_Symtext_subgroup_symtext(i):
-    mol = molsym.Molecule.from_file("test/xyz/"+subgroup_fns[i]+".xyz")
-    mol = molsym.symmetrize(mol)
-    symtext = molsym.Symtext.from_molecule(mol)
-    #assert (mol_test_set[i][0] == mol.atoms).all()
-    #assert np.isclose(mol_test_set[i][1], mol.coords).all()
+    mol = read_file("test/xyz/"+subgroup_fns[i]+".xyz")
+    mol = minimalsym.symmetrize(mol)
+    symtext = Symtext.from_molecule(mol)
+    #assert (mol_test_set[i][0] == mol.get_chemical_symbols()).all()
+    #assert np.isclose(mol_test_set[i][1], mol.positions).all()
     try:
         symtext = symtext.subgroup_symtext(subgroup_pgs[i])
         assert symtext.pg.str == subgroup_pgs[i]

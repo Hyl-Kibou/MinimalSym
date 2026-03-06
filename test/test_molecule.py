@@ -2,7 +2,6 @@ import pytest
 import os
 import numpy as np
 from copy import deepcopy
-import minimalsym
 import ase
 from ._test_helper import read_file
 
@@ -57,10 +56,32 @@ def _test_mol_from_psi4_schema():
 def test_find_com():
     assert np.isclose(molsym_mol.get_center_of_mass(), com, atol=coord_tol).all
 
+def is_at_com(mol):
+        """
+        Check if molecule is centered at its center of mass already.
+
+        Parameters
+        ----------
+        mol: ase.Atoms
+            Molecule object.
+
+        Returns
+        -------
+        bool
+            True if the center of mass is within the tolerance defined by
+            ``mol.info["tol"]``, False otherwise.
+
+        """
+        if sum(abs(mol.get_center_of_mass())) < mol.info["tol"]:
+            return True
+        else:
+            return False
+
+
 def test_is_at_com():
     newmol = deepcopy(molsym_mol)
     newmol.positions -= np.repeat(com, 3).reshape((3,3)).T
-    assert minimalsym.molecule.Molecule.is_at_com(newmol)
+    assert is_at_com(newmol)
 
 """
 def _test_eq():

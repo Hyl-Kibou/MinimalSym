@@ -1,7 +1,5 @@
 import os
 import minimalsym
-#import qcelemental as qcel
-#from molsym.molecule import Molecule
 import pytest
 from ._test_helper import read_file
 
