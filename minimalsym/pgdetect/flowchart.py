@@ -1,7 +1,7 @@
 import numpy as np
 from ..symtools import rotation_matrix, inversion_matrix, Sn, isequivalent, calcmoit, normalize
 from .flowchart_helper import find_rotation_sets, find_rotations, linear_mol_axis, find_a_c2, is_there_ortho_c2, num_C2, highest_order_axis, is_there_sigmah, is_there_sigmav, mol_is_planar, planar_mol_axis, find_C3s_for_Ih, find_C4s_for_Oh
-from ..molecule import Molecule
+from ..molecule import transform, find_SEAs
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -12,7 +12,7 @@ def find_point_group(mol: "Atoms"):
     Find the point group of a molecule.
 
     Returns the point group as a string, and primary and secondary axis
-    in order to define an orienation of the molecule with resepct to
+    in order to define an orientation of the molecule with respect to
     the symmetry elements generated later.
 
     Based on the algorithm developed by:
@@ -44,15 +44,15 @@ def find_point_group(mol: "Atoms"):
     # Linear tops
     if np.isclose(Ia_mol, 0.0, atol=mol.info["tol"]):
         paxis = linear_mol_axis(mol)
-        if isequivalent(mol, Molecule.transform(mol, inversion_matrix())):
+        if isequivalent(mol, transform(mol, inversion_matrix())):
             pg = "D0h"
         else:
             pg = "C0v"
     # Spherical tops
     elif np.isclose(Ia_mol, Ib_mol, atol=mol.info["tol"]) and np.isclose(Ia_mol, Ic_mol, atol=mol.info["tol"]):
-        seas = Molecule.find_SEAs(mol)
+        seas = find_SEAs(mol)
         n, axes = num_C2(mol, seas)
-        invertable = isequivalent(mol, Molecule.transform(mol, inversion_matrix()))
+        invertable = isequivalent(mol, transform(mol, inversion_matrix()))
         # Icosahedral
         if n == 15:
             # tempaxis is any C2 axis 
@@ -94,7 +94,7 @@ def find_point_group(mol: "Atoms"):
             else:
                 pg = "Td"
     else:
-        seas = Molecule.find_SEAs(mol)
+        seas = find_SEAs(mol)
         rot_set = find_rotation_sets(mol, seas)
         rots = find_rotations(mol, rot_set)
         if len(rots) >= 1:
@@ -103,7 +103,7 @@ def find_point_group(mol: "Atoms"):
         else:
             c2 = find_a_c2(mol, seas)
             if c2 is None:
-                molB = Molecule.transform(mol, inversion_matrix())
+                molB = transform(mol, inversion_matrix())
                 if isequivalent(mol, molB):
                     return "Ci", (paxis, saxis)
                 else:
@@ -138,7 +138,7 @@ def find_point_group(mol: "Atoms"):
                 saxis = normalize(np.cross(paxis,sigmav))
         else:
             S2n = Sn(paxis, Cn*2)
-            molB = Molecule.transform(mol, S2n)
+            molB = transform(mol, S2n)
             if isequivalent(mol, molB):
                 pg = "S"+str(2*Cn)
             else:

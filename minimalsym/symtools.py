@@ -147,16 +147,18 @@ def calcmoit(atoms):
     np.array
         Cartesian moment of inertia tensor, shape(3,3).
     """
-    I = np.zeros((3,3))
+    I = np.zeros((3, 3))
     atoms.translate(-atoms.get_center_of_mass())
+    masses = atoms.get_masses()
+    positions = atoms.positions
     for i in range(3):
         for j in range(3):
             if i == j:
                 for k in range(len(atoms)):
-                    I[i,i] += atoms.get_masses()[k]*(atoms.positions[k,(i+1)%3]**2+atoms.positions[k,(i+2)%3]**2)
+                    I[i,i] += masses[k]*(positions[k,(i+1)%3]**2+positions[k,(i+2)%3]**2)
             else:
                 for k in range(len(atoms)):
-                    I[i,j] -= atoms.get_masses()[k]*atoms.positions[k,i]*atoms.positions[k,j]
+                    I[i,j] -= masses[k]*positions[k,i]*positions[k,j]
     return I
 
 def normalize(a):

@@ -1,7 +1,7 @@
 import numpy as np
 from ..symtools import reflection_matrix, Cn, isequivalent, calcmoit, normalize, issame_axis, isfactor
 from ..symtext.symtext_helper import rotate_mol_to_symels
-from ..molecule import Molecule
+from ..molecule import transform
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -159,7 +159,7 @@ def find_rotations(mol: "Atoms", rotation_set: "List[List[RotationElement]]"):
     out = []
     for i in rsi:
         rmat = Cn(i.axis, i.order)
-        molB = Molecule.transform(mol, rmat)
+        molB = transform(mol, rmat)
         if isequivalent(mol, molB):
             out.append(i)
     return out
@@ -350,7 +350,7 @@ def c2a(mol: "Atoms", sea: "SEA", axis=None, all: bool=False):
                 if axis is not None and issame_axis(midpoint, axis) or midpoint is None:
                     continue
                 c2 = Cn(midpoint, 2)
-                molB = Molecule.transform(mol, c2)
+                molB = transform(mol, c2)
                 if isequivalent(mol, molB):
                     if all:
                         out.append(midpoint)
@@ -387,7 +387,7 @@ def c2b(mol: "Atoms", sea: "SEA", axis=None, all: bool=False):
         if axis is not None and issame_axis(c2_axis, axis):
             continue
         c2 = Cn(c2_axis, 2)
-        molB = Molecule.transform(mol, c2)
+        molB = transform(mol, c2)
         if isequivalent(mol, molB):
             if all:
                 out.append(c2_axis)
@@ -422,7 +422,7 @@ def c2c(mol: "Atoms", sea1: "SEA", sea2: "SEA", axis=None):
     if axis is not None and issame_axis(c2_axis, axis):
         return None
     c2 = Cn(c2_axis,2)
-    molB = Molecule.transform(mol, c2)
+    molB = transform(mol, c2)
     if isequivalent(mol, molB):
         return c2_axis
     return None
@@ -459,7 +459,7 @@ def is_there_sigmah(mol: "Atoms", paxis: "np.array"):
     bool
     """
     sigmah = reflection_matrix(paxis)
-    molB = Molecule.transform(mol, sigmah)
+    molB = transform(mol, sigmah)
     return isequivalent(mol, molB)
 
 def is_there_sigmav(mol: "Atoms", SEAs: "List[SEA]", paxis: "np.array"):
@@ -489,7 +489,7 @@ def is_there_sigmav(mol: "Atoms", SEAs: "List[SEA]", paxis: "np.array"):
             n = normalize(mol.positions[A,:] - mol.positions[B,:])
             if n is not None:
                 sigma = reflection_matrix(n)
-                molB = Molecule.transform(mol, sigma)
+                molB = transform(mol, sigma)
                 if isequivalent(mol, molB):
                     axes.append(n)
     if len(axes) < 1:
@@ -515,7 +515,7 @@ def is_there_sigmav(mol: "Atoms", SEAs: "List[SEA]", paxis: "np.array"):
 
 def mol_is_planar(mol: "Atoms"):
     """
-    Check if all atoms in the molecue lie in a plane.
+    Check if all atoms in the molecule lie in a plane.
 
     Parameters
     ----------
@@ -532,7 +532,7 @@ def mol_is_planar(mol: "Atoms"):
         new_mol, _, _ = rotate_mol_to_symels(mol, axis, np.array([0, 0, 0]))
         matrix = np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, -1.0]])
 
-        molB = Molecule.transform(new_mol, matrix)
+        molB = transform(new_mol, matrix)
         for i in range(len(mol)):
             # Check if atoms are about at the same Cartesian point
             if not np.isclose(new_mol.positions[i,:], molB.positions[i,:], atol=mol.info["tol"]).all():                
@@ -588,7 +588,7 @@ def find_C3s_for_Ih(mol: "Atoms"):
                         c3_axis = normalize(np.cross(rij, rjk))
                         if c3_axis is not None:
                             c3 = Cn(c3_axis, 3)
-                            molB = Molecule.transform(mol, c3)
+                            molB = transform(mol, c3)
                             if isequivalent(mol, molB):
                                 c3_axes.append(c3_axis)
     unique_axes = [c3_axes[0]]
@@ -637,7 +637,7 @@ def find_C4s_for_Oh(mol: "Atoms"):
                             c4_axis = normalize(np.cross(rij, rjk))
                             if c4_axis is not None:
                                 c4 = Cn(c4_axis, 4)
-                                molB = Molecule.transform(mol, c4)
+                                molB = transform(mol, c4)
                                 if isequivalent(mol, molB):
                                     c4_axes.append(c4_axis)
     unique_axes = [c4_axes[0]]

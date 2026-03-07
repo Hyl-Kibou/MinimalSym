@@ -1,5 +1,5 @@
 import numpy as np
-from .molecule import Molecule
+from .molecule import find_SEAs
 from .symtext.symtext import Symtext
 from typing import TYPE_CHECKING
 
@@ -30,7 +30,7 @@ def symmetrize(mol_in: "Atoms", asym_tol: float = 0.05) -> "Atoms":
     mol_in = mol_in.copy()
 
     mol_in.info["tol"] = asym_tol
-    seas = Molecule.find_SEAs(mol_in)
+    seas = find_SEAs(mol_in)
     asym_symtext = Symtext.from_molecule(mol_in)
     mol = asym_symtext.mol
     for sea in seas:

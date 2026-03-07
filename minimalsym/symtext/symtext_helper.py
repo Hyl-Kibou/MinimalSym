@@ -1,9 +1,7 @@
 import numpy as np
-from .point_group import PointGroup
-from ..molecule import Molecule, global_tol
+from ..molecule import transform, global_tol
 from ..symtools import normalize
-import re
-from .general_irrep_mats import Symel
+from .symel import Symel
     
 def rotate_mol_to_symels(mol, paxis, saxis):
     """
@@ -35,7 +33,7 @@ def rotate_mol_to_symels(mol, paxis, saxis):
         y = np.cross(z,x)
     rmat = np.column_stack((x,y,z)) # This matrix rotates z to paxis, etc., ...
     rmat_inv = rmat.T # ... so invert it to take paxis to z, etc.
-    new_mol = Molecule.transform(mol, rmat_inv)
+    new_mol = transform(mol, rmat_inv)
     return new_mol, rmat, rmat_inv
 
 def get_atom_mapping(mol, symels):
@@ -88,23 +86,3 @@ def where_you_go(mol, atom, symel):
         if np.isclose(mol.positions[i,:], ratom, atol=mol.info["tol"]).all():
             return i
     return None
-
-def get_class_name(symels_in_class):
-    """
-    Get the name of the class that a set of Symels belong to.
-
-    :type symels_in_class: List[molsym.Symel]
-    :rtype: str
-    """
-    if "^" in symels_in_class[0].symbol:
-        rot_order = []
-        for symel in symels_in_class:
-            s = re.search(r"\^(\d+)", symel.symbol)
-            if s:
-                rot_order.append(int(s.groups()[0]))
-            else:
-                rot_order.append(1)
-        pickem = symels_in_class[np.argmin(rot_order)].symbol
-    else:
-        pickem = symels_in_class[0].symbol
-    return re.sub(r"\(\w+\)", "", pickem)

@@ -2,17 +2,21 @@ import numpy as np
 from numpy.linalg import matrix_power
 from ..symtools import reflection_matrix, inversion_matrix, Cn, Sn, normalize
 from dataclasses import dataclass
-from .point_group import PointGroup
 
+# New Symel definition!
 @dataclass
 class Symel():
     """
-    Deprecated data structure for symmetry elements.
-    Still hanging around because of cubic/icosahedral groups and tests.
+    New Symel definition that helps with the arbitrary generation of irreducible representation matrices.
     """
-    symbol:str
-    vector:np.array # Not defined for E or i, axis vector for Cn and Sn, plane normal vector for sigma
-    rrep:np.array
+
+    def __init__(self, symbol:str, vector:np.array, rrep:np.array, m:int=None, n:int=None, O:str=None):
+        self.symbol = symbol
+        self.vector=vector # Not defined for E or i, axis vector for Cn and Sn, plane normal vector for sigma
+        self.rrep=rrep
+        self.m = m #int
+        self.n=n # int
+        self.O=O # str Options: E, sigma_v, C_2', i, sigma_h
     def __str__(self) -> str:
         with np.printoptions(precision=5, suppress=True, formatter={"all":lambda x: f"{x:8.5f}"}):
             return f"\nSymbol: {self.symbol:>10s}: [{self.rrep[0,:]},{self.rrep[1,:]},{self.rrep[2,:]}]"
