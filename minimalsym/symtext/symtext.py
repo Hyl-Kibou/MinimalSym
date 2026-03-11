@@ -6,7 +6,11 @@ from .symtext_helper import get_atom_mapping, rotate_mol_to_symels, get_linear_a
 
 class Symtext():
     """
-    Fundamental object of MolSym, holds most of the symmetry information of the molecule.
+    Full symmetry characterization of a molecule.
+
+    Holds the point group, list of symmetry elements, atom permutation map,
+    and the rotation matrices that relate the molecule to the canonical
+    orientation defined by the symmetry elements.
     """
     def __init__(self, mol, rotate_to_std, reverse_rotate, pg, symels, atom_map) -> None:
         self.mol = mol
@@ -32,21 +36,20 @@ class Symtext():
 
     @classmethod
     def empty(cls):
-        mol = None
-        rotate_to_std = None
-        reverse_rotate = None
-        pg = PointGroup.from_string("C1")
-        symels = []
-        atom_map = []        
-        return Symtext(mol, rotate_to_std, reverse_rotate, pg, symels, atom_map)
+        return Symtext(None, None, None, PointGroup.from_string("C1"), [], [])
 
     @classmethod
     def from_molecule(cls, mol):
         """
-        Class method for creating a Symtext from a ase.Atoms
+        Build a Symtext from an ase.Atoms object.
 
-        :type mol: Atoms object from ASE
-        :rtype: molsym.Symtext
+        Parameters
+        ----------
+        mol: ase.Atoms
+
+        Returns
+        -------
+        Symtext
         """
         mol.translate(-mol.get_center_of_mass())
         pg_str, (paxis, saxis) = find_point_group(mol)
@@ -57,6 +60,6 @@ class Symtext():
         symels = pg_to_symels(pg.str)
         if pg.is_linear:
             atom_map = get_linear_atom_mapping(mol, pg)
-            return Symtext(mol, rotate_to_std, reverse_rotate, pg, symels, atom_map)
-        atom_map = get_atom_mapping(mol, symels)
+        else:
+            atom_map = get_atom_mapping(mol, symels)
         return Symtext(mol, rotate_to_std, reverse_rotate, pg, symels, atom_map)

@@ -27,13 +27,13 @@ def find_point_group(mol: "Atoms"):
 
     Returns
     -------
-    tuple (str, (np.array, np.array))
+    tuple(str, (np.array, np.array))
         Schoenflies point group string, primary axis, and secondary axis of shape(3,).
-    """    
+    """
     try:
         mol.info['tol']
     except KeyError:
-        raise Exception(f"Atoms object tolerance hasn't been set. Set it with Atoms.info['tol']=.")
+        raise Exception("Atoms object tolerance hasn't been set. Set it with Atoms.info['tol']=.")
 
     mol = mol.copy()
 
@@ -60,9 +60,9 @@ def find_point_group(mol: "Atoms"):
             tempaxis = axes[0]
             c3s = find_C3s_for_Ih(mol)
             for c3 in c3s:
-                if np.isclose(np.arccos(abs(np.dot(c3, tempaxis))), 0.36486382647383764, atol = 1e-4):
+                if np.isclose(np.arccos(abs(np.dot(c3, tempaxis))), 0.36486382647383764, atol=1e-4):
                     taxis = normalize(np.cross(c3, tempaxis))
-                    saxis = normalize(np.cross(taxis,tempaxis))
+                    saxis = normalize(np.cross(taxis, tempaxis))
                     break
             # Reorienting vectors such that one face is on the z-axis with "pentagon" pointing at the POSITIVE y-axis
             phi = (1+np.sqrt(5.0))/2
@@ -70,7 +70,6 @@ def find_point_group(mol: "Atoms"):
             theta = np.arccos(phi/np.sqrt(1+(phi**2)))
             rmat = rotation_matrix(saxis, theta)
             paxis = np.dot(rmat, tempaxis)
-            taxis = np.dot(rmat, paxis)
             if invertable:
                 pg = "Ih"
             else:
@@ -98,7 +97,7 @@ def find_point_group(mol: "Atoms"):
         rot_set = find_rotation_sets(mol, seas)
         rots = find_rotations(mol, rot_set)
         if len(rots) >= 1:
-            Cn = highest_order_axis(rots)
+            Cn_order = highest_order_axis(rots)
             paxis = rots[0].axis
         else:
             c2 = find_a_c2(mol, seas)
@@ -115,7 +114,7 @@ def find_point_group(mol: "Atoms"):
                     else:
                         return "C1", (paxis, saxis)
             paxis = c2
-            Cn = 2
+            Cn_order = 2
         
         ortho_c2_chk, c2_ortho = is_there_ortho_c2(mol, seas, paxis)
         sigmav_chk, sigmav = is_there_sigmav(mol, seas, paxis)
@@ -123,24 +122,24 @@ def find_point_group(mol: "Atoms"):
         if ortho_c2_chk:
             saxis = c2_ortho
             if sigmah_chk:
-                pg = "D"+str(Cn)+"h"
+                pg = "D"+str(Cn_order)+"h"
             elif sigmav_chk:
-                pg = "D"+str(Cn)+"d"
+                pg = "D"+str(Cn_order)+"d"
             else:
-                pg = "D"+str(Cn)
+                pg = "D"+str(Cn_order)
         elif sigmah_chk:
-            pg = "C"+str(Cn)+"h"
+            pg = "C"+str(Cn_order)+"h"
         elif sigmav_chk:
-            pg = "C"+str(Cn)+"v"
+            pg = "C"+str(Cn_order)+"v"
             if mol_is_planar(mol):
                 saxis = planar_mol_axis(mol)
             elif sigmav.any():
-                saxis = normalize(np.cross(paxis,sigmav))
+                saxis = normalize(np.cross(paxis, sigmav))
         else:
-            S2n = Sn(paxis, Cn*2)
+            S2n = Sn(paxis, Cn_order*2)
             molB = transform(mol, S2n)
             if isequivalent(mol, molB):
-                pg = "S"+str(2*Cn)
+                pg = "S"+str(2*Cn_order)
             else:
-                pg = "C"+str(Cn)
+                pg = "C"+str(Cn_order)
     return pg, (paxis, saxis)

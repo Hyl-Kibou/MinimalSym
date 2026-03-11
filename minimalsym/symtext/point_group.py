@@ -2,7 +2,9 @@ import re
 
 class PointGroup():
     """
-    Class for defining point group.
+    Schoenflies point group descriptor.
+
+    Parses and validates a point group string into its family, order, and subfamily.
     """
     def __init__(self, s, family, n, subfamily):
         self.str = s
@@ -44,8 +46,8 @@ class PointGroup():
         return self.__str__()
 
     def dumb_pg(self):
-        # Check if a dumb point group has been made (e.g. D1h, D0v, C2i)
-        argstr = f"You have generated a dumb point group: {self.str}. Family {self.family}, n {self.n}, subfamily {self.subfamily}. We aren't sure how you managed to do this but we aren't paid enough to proceed with any calculations. If you have any questions, feel free to email the CFOUR listserv."
+        # Raise if the parsed combination of family, n, and subfamily is not a valid Schoenflies symbol. (e.g. D1h, D0v, C2i)
+        argstr = f"Invalid point group: {self.str}. Family {self.family}, n {self.n}, subfamily {self.subfamily}."
         if self.n is None:
             if self.family == "C":
                 allowed = ["s", "i"]

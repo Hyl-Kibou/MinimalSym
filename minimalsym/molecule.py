@@ -1,6 +1,6 @@
 import numpy as np
 from dataclasses import dataclass
-from copy import deepcopy
+
 global_tol = 1e-8 # TODO It would be nice to get rid of this...
 
 @dataclass
@@ -39,28 +39,28 @@ def transform(mol, M):
     ase.Atoms
         Molecule with transformed atom coordinates
     """
-    new_mol = deepcopy(mol)
+    new_mol = mol.copy()
     new_mol.positions = np.dot(new_mol.positions, np.transpose(M))
     return new_mol
 
-def distance_matrix(mol):
+def distance_matrix(positions):
     """
     Calculate the interatomic distance matrix as all pairwise distances between atoms.
 
     Parameters
     ----------
-    mol: ase.Atoms
-        Molecule object.
+    mol: np.array
+        Numpy array of positions of Molecule.
 
     Returns
     -------
     np.array
         Interatomic distance matrix, shape(len(mol),len(mol))
     """
-    dm = np.zeros((len(mol),len(mol)))
-    for i in range(len(mol)):
-        for j in range(i,len(mol)):
-            dm[i,j] = np.sqrt(sum((mol.positions[i,:]-mol.positions[j,:])**2))
+    dm = np.zeros((len(positions), len(positions)))
+    for i in range(len(positions)):
+        for j in range(i, len(positions)):
+            dm[i,j] = np.sqrt(sum((positions[i,:]-positions[j,:])**2))
             dm[j,i] = dm[i,j]
     return dm
 
@@ -76,15 +76,16 @@ def find_SEAs(mol):
 
     Returns
     -------
-    List[molsym.SEA]
+    List[SEA]
         List of symmetry equivalent atom sets
     """
-    dm = distance_matrix(mol)
+
+    dm = distance_matrix(mol.positions)
     out = []
     for i in range(len(mol)):
-        for j in range(i+1,len(mol)):
-            a_idx = np.argsort(dm[i,:])
-            b_idx = np.argsort(dm[j,:])
+        for j in range(i+1, len(mol)):
+            a_idx = np.argsort(dm[i, :])
+            b_idx = np.argsort(dm[j, :])
             z = dm[i,a_idx] - dm[j,b_idx]
             chk = True
             for k in z:

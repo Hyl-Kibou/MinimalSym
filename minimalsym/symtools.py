@@ -20,7 +20,7 @@ def rotation_matrix(axis, theta):
     kmat1 = np.array([[0.0, -axis[2], axis[1]], 
                       [axis[2], 0.0, -axis[0]], 
                       [-axis[1], axis[0], 0.0]])
-    kmat2 = np.matmul(kmat1,kmat1)
+    kmat2 = np.matmul(kmat1, kmat1)
     rodriguesrm = np.eye(3) + np.sin(theta)*kmat1 + (1.0 - np.cos(theta))*kmat2
     return rodriguesrm
 
@@ -38,9 +38,9 @@ def reflection_matrix(axis):
     np.array
         Matrix defining reflection on column vector, shape (3,3).
     """
-    M = np.zeros((3,3))
+    M = np.zeros((3, 3))
     for i in range(3):
-        for j in range(i,3):
+        for j in range(i, 3):
             if i == j:
                 M[i,i] = 1 - 2*(axis[i]**2)
             else:
@@ -196,7 +196,7 @@ def issame_axis(a, b, tol=global_tol):
     Returns
     -------
     bool
-        True if vectors are colinear, False if not colinear or if either vector has zero length.
+        True if vectors are collinear, False if not collinear or if either vector has zero length.
     """
     A = normalize(a)
     B = normalize(b)
@@ -221,10 +221,7 @@ def isfactor(n,a):
     bool
         True if ``a`` divides ``n`` with remainder 0.
     """
-    if n % a == 0:
-        return True
-    else:
-        return False
+    return n % a == 0
 
 def reduce(n, i):
     """
@@ -257,8 +254,8 @@ def gcd(A, B):
     int
         Greatest common divisor between A and B.
     """
-    a = max(A,B)
-    b = min(A,B)
+    a = max(A, B)
+    b = min(A, B)
     if a == 0:
         return b
     elif b == 0:

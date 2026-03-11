@@ -5,21 +5,28 @@ from .symel import Symel
     
 def rotate_mol_to_symels(mol, paxis, saxis):
     """
-    Rotate molecule with symmetry defined by paxis and saxis to symmetry elements.
-    paxis -> z axis and saxis -> x axis.
+    Rotate molecule so that paxis aligns with z and saxis aligns with x.
 
-    :type mol: Atoms object from ASE
-    :type paxis: NumPy array of shape (3,)
-    :type saxis: NumPy array of shape (3,)
-    :return: New rotated molecule, rotation matrix, inverse rotation matrix
-    :rtype: (Atoms object from ASE, NumPy array of shape (3,3), NumPy array of shape (3,3))
+    Returns the rotated molecule and the forward/inverse rotation matrices so
+    that computed properties can be rotated back to the original orientation.
+
+    Parameters
+    ----------
+    mol: ase.Atoms
+    paxis: np.array of shape (3,)
+    saxis: np.array of shape (3,)
+
+    Returns
+    -------
+    tuple(ase.Atoms, np.array, np.array)
+        Rotated molecule, rotation matrix, inverse rotation matrix; matrices shape (3,3).
     """
-    if np.isclose(np.linalg.norm(paxis), 0.0, atol=global_tol): 
+    if np.isclose(np.linalg.norm(paxis), 0.0, atol=global_tol):
         # Symmetry is C1 and paxis not defined, just return mol
         rmat = rmat_inv = np.eye(3)
         return mol, rmat, rmat_inv
     z = paxis
-    if np.isclose(np.linalg.norm(saxis), 0.0, atol=global_tol): 
+    if np.isclose(np.linalg.norm(saxis), 0.0, atol=global_tol):
         # Find a trial vector that works
         x = None
         for trial_vec in np.eye(3):
@@ -30,28 +37,32 @@ def rotate_mol_to_symels(mol, paxis, saxis):
         y = normalize(np.cross(z, x))
     else:
         x = saxis
-        y = np.cross(z,x)
-    rmat = np.column_stack((x,y,z)) # This matrix rotates z to paxis, etc., ...
+        y = np.cross(z, x)
+    rmat = np.column_stack((x, y, z)) # This matrix rotates z to paxis, etc., ...
     rmat_inv = rmat.T # ... so invert it to take paxis to z, etc.
     new_mol = transform(mol, rmat_inv)
     return new_mol, rmat, rmat_inv
 
 def get_atom_mapping(mol, symels):
     """
-    Map of each atom under each symmetry element.
+    Build the (natom × nsymel) atom permutation map.
 
-    :type mol: Atoms object from ASE
-    :type symels: List[molsym.Symel]
-    :return: Atom by Symel array
-    :rtype: NumPy array of shape (natom, nsymel)
+    Parameters
+    ----------
+    mol: ase.Atoms
+    symels: List[Symel]
+
+    Returns
+    -------
+    np.array of shape (natom, nsymel)
     """
     # symels after transformation
     amap = np.zeros((len(mol), len(symels)), dtype=int)
     for atom in range(len(mol)):
-        for (s, symel) in enumerate(symels):
-            w = where_you_go(mol, atom, symel)
+        for s, symel in enumerate(symels):
+            w = _where_you_go(mol, atom, symel)
             if w is not None:
-                amap[atom,s] = w
+                amap[atom, s] = w
             else:
                 raise Exception(f"Atom {atom} {mol.info["num"]} not mapped to another atom under symel {symel}\nPositions: {mol.positions}")
     return amap
@@ -60,11 +71,11 @@ def get_linear_atom_mapping(mol, pg):
     """
     Atom map for linear point groups. Still under development.
     """
-    amap = np.array([atom for atom in range(len(mol))], dtype=int).reshape((len(mol),1))
+    amap = np.array([atom for atom in range(len(mol))], dtype=int).reshape((len(mol), 1))
     if pg.family == "D":
         ungerade_map = np.zeros((len(mol)), dtype=int)
         for atom in range(len(mol)):
-            w = where_you_go(mol, atom, Symel("i", None, -1*np.eye(3), None, None, None))
+            w = _where_you_go(mol, atom, Symel("i", None, -1*np.eye(3), None, None, None))
             if w is not None:
                 ungerade_map[atom] = w
             else:
@@ -72,14 +83,19 @@ def get_linear_atom_mapping(mol, pg):
         return np.column_stack((amap, ungerade_map))
     return amap
 
-def where_you_go(mol, atom, symel):
+def _where_you_go(mol, atom, symel):
     """
-    Find the resulting atom after applying a symmetry operation
+    Find the atom index that atom maps to under symel.
 
-    :type mol: Atoms object from ASE
-    :type atom: int
-    :type symel: molsym.Symel
-    :rtype: int
+    Parameters
+    ----------
+    mol: ase.Atoms
+    atom: int
+    symel: Symel
+
+    Returns
+    -------
+    int or None
     """
     ratom = np.dot(symel.rrep, mol.positions[atom,:].T)
     for i in range(len(mol)):
