@@ -46,7 +46,7 @@ class PointGroup():
         return self.__str__()
 
     def dumb_pg(self):
-        # Raise if the parsed combination of family, n, and subfamily is not a valid Schoenflies symbol. (e.g. D1h, D0v, C2i)
+        # Raise if the parsed combination of family, n, and subfamily is not a valid Schoenflies symbol.
         argstr = f"Invalid point group: {self.str}. Family {self.family}, n {self.n}, subfamily {self.subfamily}."
         if self.n is None:
             if self.family == "C":
