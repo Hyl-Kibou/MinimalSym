@@ -1,5 +1,6 @@
 import numpy as np
 from dataclasses import dataclass
+from numba import njit
 
 global_tol = 1e-8 # TODO It would be nice to get rid of this...
 
@@ -22,15 +23,20 @@ class SEA():
     label:str
     subset:np.array
     axis:np.array
+    def __eq__(self, other):
+        if len(self.subset) != len(other.subset):
+            return False
+        return self.label == self.label and (self.subset == other.subset).all() and (self.axis == other.axis).all()
 
-def transform(mol, M):
+@njit
+def transform(positions: "np.array", M: "np.array") -> "np.array":
     """
-    Transform coordinates of molecule by matrix M and return new molecule.
+    Transform coordinates of molecule by matrix M and return new positions.
 
     Parameters
     ----------
-    mol: ase.Atoms
-        Molecule object.
+    positions: np.array
+        Molecule positions.
     M: np.array
         Transformation matrix (e.g. rotation, reflection, etc.), shape (3,3)
 
@@ -39,10 +45,9 @@ def transform(mol, M):
     ase.Atoms
         Molecule with transformed atom coordinates
     """
-    new_mol = mol.copy()
-    new_mol.positions = np.dot(new_mol.positions, np.transpose(M))
-    return new_mol
+    return np.dot(positions, np.transpose(M))
 
+@njit
 def distance_matrix(positions):
     """
     Calculate the interatomic distance matrix as all pairwise distances between atoms.
@@ -60,9 +65,51 @@ def distance_matrix(positions):
     dm = np.zeros((len(positions), len(positions)))
     for i in range(len(positions)):
         for j in range(i, len(positions)):
-            dm[i,j] = np.sqrt(sum((positions[i,:]-positions[j,:])**2))
+            dx = positions[i,0] - positions[j,0]
+            dy = positions[i,1] - positions[j,1]
+            dz = positions[i,2] - positions[j,2]
+            dm[i,j] = np.sqrt(dx*dx + dy*dy + dz*dz)
             dm[j,i] = dm[i,j]
     return dm
+
+@njit
+def _jit_find_SEAs(size, positions, tol):
+    dm = distance_matrix(positions)
+    out = []
+    indexs = []
+
+    for i in range(size):
+        indexs.append(np.argsort(dm[i, :]))
+
+    for i in range(size):
+        a_idx = indexs[i]
+        for j in range(i+1, size):
+            b_idx = indexs[j]
+            z = dm[i,a_idx] - dm[j,b_idx]
+            chk = True
+            for k in z:
+                if abs(k) >= tol:
+                    chk = False
+                    break
+            if chk:
+                out.append((i,j))
+    skip = np.zeros(size, dtype=np.bool_)
+    SEAs = []
+    for i in range(size):
+        if skip[i]:
+            continue
+        collect = [i]
+
+        for k in out:
+            if i in k:
+                if i == k[0]:
+                    collect.append(k[1])
+                    skip[k[1]] = True
+                else:
+                    collect.append(k[0])
+                    skip[k[0]] = True
+        SEAs.append(collect)
+    return SEAs
 
 def find_SEAs(mol):
     """
@@ -80,37 +127,9 @@ def find_SEAs(mol):
         List of symmetry equivalent atom sets
     """
 
-    dm = distance_matrix(mol.positions)
-    out = []
-    for i in range(len(mol)):
-        for j in range(i+1, len(mol)):
-            a_idx = np.argsort(dm[i, :])
-            b_idx = np.argsort(dm[j, :])
-            z = dm[i,a_idx] - dm[j,b_idx]
-            chk = True
-            for k in z:
-                if abs(k) < mol.info["tol"]:
-                    continue
-                else:
-                    chk = False
-            if chk:
-                out.append((i,j))
-    skip = []
+    SEAs_parts = _jit_find_SEAs(len(mol), mol.positions, mol.info['tol'])
     SEAs = []
-    for i in range(len(mol)):
-        if i in skip:
-            continue
-        else:
-            collect = [i]
-        
-        for k in out:
-            if i in k:
-                if i == k[0]:
-                    collect.append(k[1])
-                    skip.append(k[1])
-                else:
-                    collect.append(k[0])
-                    skip.append(k[0])
-        SEAs.append(SEA("", collect, np.zeros(3)))
+    for collect in SEAs_parts:
+        SEAs.append(SEA("", np.asarray(collect, dtype=np.int64), np.zeros(3)))
     return SEAs
 

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "MinimalSym"
-version = "0.3.1"
+version = "0.4.0"
 authors = [
     { name = "Sebastian Hernández", email = "s3b4s7i4nhg@gmail.com" }
 ]
@@ -18,7 +18,8 @@ classifiers = [
     ]
 requires-python = ">=3.9"
 dependencies = [
-    "numpy >= 1.23.4"
+    "numpy >= 1.23.4",
+    "numba >= 0.59"
     ]
 
 [project.optional-dependencies]

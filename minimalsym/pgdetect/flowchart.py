@@ -1,7 +1,7 @@
 import numpy as np
-from ..symtools import rotation_matrix, inversion_matrix, Sn, isequivalent, calcmoit, normalize
+from ..symtools import rotation_matrix, inversion_matrix, Sn, transform_isequivalent, calcmoit, normalize
 from .flowchart_helper import find_rotation_sets, find_rotations, linear_mol_axis, find_a_c2, is_there_ortho_c2, num_C2, highest_order_axis, is_there_sigmah, is_there_sigmav, mol_is_planar, planar_mol_axis, find_C3s_for_Ih, find_C4s_for_Oh
-from ..molecule import transform, find_SEAs
+from ..molecule import find_SEAs
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -31,28 +31,31 @@ def find_point_group(mol: "Atoms"):
         Schoenflies point group string, primary axis, and secondary axis of shape(3,).
     """
     try:
-        mol.info['tol']
+        mol_tol = mol.info['tol']
     except KeyError:
         raise Exception("Atoms object tolerance hasn't been set. Set it with Atoms.info['tol']=.")
 
     mol = mol.copy()
-
     paxis = [0,0,0]
     saxis = [0,0,0]
     moit = calcmoit(mol)
+
+    positions = mol.positions
+    masses = mol.get_masses()
+
     Ia_mol, Ib_mol, Ic_mol = np.sort(np.linalg.eigh(moit)[0])
     # Linear tops
-    if np.isclose(Ia_mol, 0.0, atol=mol.info["tol"]):
+    if np.isclose(Ia_mol, 0.0, atol=mol_tol):
         paxis = linear_mol_axis(mol)
-        if isequivalent(mol, transform(mol, inversion_matrix())):
+        if transform_isequivalent(positions, masses, mol_tol, inversion_matrix()):
             pg = "D0h"
         else:
             pg = "C0v"
     # Spherical tops
-    elif np.isclose(Ia_mol, Ib_mol, atol=mol.info["tol"]) and np.isclose(Ia_mol, Ic_mol, atol=mol.info["tol"]):
+    elif np.isclose(Ia_mol, Ib_mol, atol=mol_tol) and np.isclose(Ia_mol, Ic_mol, atol=mol_tol):
         seas = find_SEAs(mol)
         n, axes = num_C2(mol, seas)
-        invertable = isequivalent(mol, transform(mol, inversion_matrix()))
+        invertable = transform_isequivalent(positions, masses, mol_tol, inversion_matrix())
         # Icosahedral
         if n == 15:
             # tempaxis is any C2 axis 
@@ -102,8 +105,7 @@ def find_point_group(mol: "Atoms"):
         else:
             c2 = find_a_c2(mol, seas)
             if c2 is None:
-                molB = transform(mol, inversion_matrix())
-                if isequivalent(mol, molB):
+                if transform_isequivalent(positions, masses, mol_tol, inversion_matrix()):
                     return "Ci", (paxis, saxis)
                 else:
                     sigmav_chk, sigmav = is_there_sigmav(mol, seas, np.asarray([0,0,0]))
@@ -137,8 +139,7 @@ def find_point_group(mol: "Atoms"):
                 saxis = normalize(np.cross(paxis, sigmav))
         else:
             S2n = Sn(paxis, Cn_order*2)
-            molB = transform(mol, S2n)
-            if isequivalent(mol, molB):
+            if transform_isequivalent(positions, masses, mol_tol, S2n):
                 pg = "S"+str(2*Cn_order)
             else:
                 pg = "C"+str(Cn_order)

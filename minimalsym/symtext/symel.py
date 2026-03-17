@@ -4,7 +4,7 @@ from ..symtools import reflection_matrix, inversion_matrix, Cn, Sn, normalize
 from dataclasses import dataclass
 
 # New Symel definition!
-@dataclass
+@dataclass(frozen=True, slots=True)
 class Symel():
     """
     Symmetry element: a single symmetry operation with its matrix representation and metadata.
@@ -24,25 +24,26 @@ class Symel():
     O: str or None
         Origin class of the element. Options: "E", "sigma_v", "C_2'", "i", "sigma_h".
     """
+    symbol: str
+    vector: np.ndarray | None # Not defined for E or i, axis vector for Cn and Sn, plane normal vector for sigma
+    rrep: np.ndarray
+    m: int | None = None
+    n: int | None = None
+    O: str | None = None # str Options: E, sigma_v, C_2', i, sigma_h
 
-    def __init__(self, symbol:str, vector:np.array, rrep:np.array, m:int=None, n:int=None, O:str=None):
-        self.symbol = symbol
-        self.vector = vector # Not defined for E or i, axis vector for Cn and Sn, plane normal vector for sigma
-        self.rrep = rrep
-        self.m = m #int
-        self.n = n # int
-        self.O = O # str Options: E, sigma_v, C_2', i, sigma_h
     def __str__(self) -> str:
         with np.printoptions(precision=5, suppress=True, formatter={"all":lambda x: f"{x:8.5f}"}):
             return f"\nSymbol: {self.symbol:>10s}: [{self.rrep[0,:]},{self.rrep[1,:]},{self.rrep[2,:]}]"
+
     def __repr__(self) -> str:
         return self.__str__()
+
     def __eq__(self, other):
         return self.symbol == other.symbol and np.isclose(self.rrep, other.rrep, atol=1e-10).all()
 
 # ── Cubic and icosahedral group generators ────────────────────────────────────    
 
-def generate_T():
+def _generate_T():
     """
     Generate symmetry elements for the T point group.
     Assume a tetrahedron contained in a cube, then we can easily generate
@@ -73,7 +74,7 @@ def generate_T():
         symels.append(Symel(f"C_2({namelist[i]})", C2list[i], C2))
     return symels
 
-def generate_Td():
+def _generate_Td():
     """
     Generate symmetry elements for the Td point group.
     Assume a tetrahedron contained in a cube, then we can easily generate
@@ -83,7 +84,7 @@ def generate_Td():
     -------
     List[Symel]
     """
-    symels = generate_T()
+    symels = _generate_T()
     # σd's
     sigmas = [
         normalize(np.array([1.0, 1.0, 0.0])), normalize(np.array([1.0, -1.0, 0.0])),
@@ -104,7 +105,7 @@ def generate_Td():
         symels.append(Symel(f"S_4^3({namelist[i]})", S4vlist[i], S43))
     return symels
 
-def generate_Th():
+def _generate_Th():
     """
     Generate symmetry elements for the Th point group.
     Assume a tetrahedron contained in a cube, then we can easily generate
@@ -114,7 +115,7 @@ def generate_Th():
     -------
     List[Symel]
     """
-    symels = generate_T()
+    symels = _generate_T()
     # i
     symels.append(Symel("i", None, inversion_matrix()))
     # S6
@@ -136,7 +137,7 @@ def generate_Th():
         symels.append(Symel(f"sigma_h({namelist[i]})", sigma_list[i], sigma_h))
     return symels
 
-def generate_O():
+def _generate_O():
     """
     Generate symmetry elements for the O point group.
     Assume operations on a cube.
@@ -179,7 +180,7 @@ def generate_O():
         symels.append(Symel(f"C_2({namelist[i]})", C2list[i], C2))
     return symels
 
-def generate_Oh():
+def _generate_Oh():
     """
     Generate symmetry elements for the Oh point group.
     Assume operations on a cube.
@@ -188,7 +189,7 @@ def generate_Oh():
     -------
     List[Symel]
     """
-    symels = generate_O()
+    symels = _generate_O()
     symels.append(Symel("i", None, inversion_matrix()))
     # S4 and σh    
     S4list = np.eye(3)
@@ -223,7 +224,7 @@ def generate_Oh():
         symels.append(Symel(f"sigma_d({namelist[i]})", sigma_dlist[i], sigma_d))
     return symels
 
-def generate_I():
+def _generate_I():
     """
     Generate symmetry elements for the I point group.
 
@@ -232,7 +233,7 @@ def generate_I():
     List[Symel]
     """
     symels = [Symel("E", None, np.eye(3))]
-    faces, vertices, edgecenters = _generate_I_vectors()
+    faces, vertices, edgecenters = FACE_VEC, VERTEX_VEC, EDGE_VEC
     # C5 (face vectors)
     for i in range(6):
         C5 = Cn(faces[i],5)
@@ -258,7 +259,7 @@ def generate_I():
     
     return symels
 
-def generate_Ih():
+def _generate_Ih():
     """
     Generate symmetry elements for the Ih point group.
 
@@ -266,8 +267,8 @@ def generate_Ih():
     -------
     List[Symel]
     """
-    symels = generate_I()
-    faces, vertices, edgecenters = _generate_I_vectors()
+    symels = _generate_I()
+    faces, vertices, edgecenters = FACE_VEC, VERTEX_VEC, EDGE_VEC
     symels.append(Symel("i", None, inversion_matrix()))
     # S10 (face vectors)
     for i in range(6):
@@ -365,3 +366,12 @@ def _generate_I_vectors():
 
     return (face_vectors, vertex_vectors, edgecenters)
 
+FACE_VEC, VERTEX_VEC, EDGE_VEC = _generate_I_vectors()
+
+T_SYMELS  = tuple(_generate_T())
+TD_SYMELS = tuple(_generate_Td())
+TH_SYMELS = tuple(_generate_Th())
+O_SYMELS  = tuple(_generate_O())
+OH_SYMELS = tuple(_generate_Oh())
+I_SYMELS  = tuple(_generate_I())
+IH_SYMELS = tuple(_generate_Ih())

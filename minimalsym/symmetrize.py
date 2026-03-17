@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from ase import Atoms
 
-
 def symmetrize(mol_in: "Atoms", asym_tol: float = 0.05) -> "Atoms":
     """
     Symmetrizes the geometry of a molecule to a detectable low tolerance point group.
@@ -28,7 +27,6 @@ def symmetrize(mol_in: "Atoms", asym_tol: float = 0.05) -> "Atoms":
         Symmetrized Atoms molecule.
     """
     mol_in = mol_in.copy()
-
     mol_in.info["tol"] = asym_tol
     seas = find_SEAs(mol_in)
     asym_symtext = Symtext.from_molecule(mol_in)

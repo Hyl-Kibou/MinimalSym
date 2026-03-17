@@ -1,9 +1,9 @@
 import numpy as np
 from numpy.linalg import matrix_power
-from dataclasses import dataclass
 from .point_group import PointGroup
 from ..symtools import reflection_matrix, inversion_matrix, Cn, Sn, normalize, reduce
-from .symel import Symel, generate_T, generate_Th, generate_Td, generate_O, generate_Oh, generate_I, generate_Ih
+from .symel import Symel, T_SYMELS, TD_SYMELS, TH_SYMELS, O_SYMELS, OH_SYMELS, I_SYMELS, IH_SYMELS
+from numba import njit
 
 np.set_printoptions(precision=3, threshold=np.inf, linewidth=14000, suppress=True)
 
@@ -89,21 +89,21 @@ def pg_to_symels(PG):
     else:
         if pg.family == "T":
             if pg.subfamily == "h":
-                return generate_Th()
+                return TH_SYMELS
             elif pg.subfamily == "d":
-                return generate_Td()
+                return TD_SYMELS
             else:
-                return generate_T()
+                return T_SYMELS
         elif pg.family == "O":
             if pg.subfamily == "h":
-                return generate_Oh()
+                return OH_SYMELS
             else:
-                return generate_O()
+                return O_SYMELS
         elif pg.family == "I":
             if pg.subfamily == "h":
-                return generate_Ih()
+                return IH_SYMELS
             else:
-                return generate_I()
+                return I_SYMELS
         else:
             raise Exception(argerr)
     return 0
@@ -153,21 +153,25 @@ def _Zn(n, generator):
             symels.append(cnm)
     return symels
 
+@njit
 def _omega(m, n):
     """Reduce the power m of an S_n element to its canonical symbol index and axis order."""
     gcd_val = np.gcd(m, n)
     l = (m/gcd_val) + (n/gcd_val) * (1-((m/gcd_val)%2))
     return int(l), int(n/gcd_val)
 
+@njit
 def _mult_iCnm(m, n):
     """Return the canonical power and axis order of i * C_n^m."""
     a = (2*m+n) % (2*n)
     return _omega(a, 2*n)
 
+@njit
 def _mult_sigmahCnm(m, n):
     """Return the canonical power and axis order of sigma_h * C_n^m."""
     return _omega(m, n)
 
+@njit
 def _mult_CSC2sigma(m, n, pre, post):
     """Return the symbol of the product of a principal-axis element with a C_2' or sigma element."""
     # Operator: "C_2", "sigma"
