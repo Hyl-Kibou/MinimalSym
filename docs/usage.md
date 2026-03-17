@@ -7,6 +7,8 @@ All molecule objects are expected to be ASE `Atoms` objects.
     but public functions operate on `Atoms` objects from ASE. 
     To use the examples below, ASE must be installed.
 
+These functions do **not modify the input molecule**.
+
 ## Tolerance
 
 Symmetry detection utilizes a positional tolerance set in
@@ -24,8 +26,6 @@ When using `symmetrize()`, the tolerance is set via the
 
 An ASE `Atoms` object is passed to the function and a new symmetrized
 `Atoms` object is returned.
-
-`symmetrize()` does **not modify the input molecule**.
 
 ```python
 from ase import Atoms
@@ -72,21 +72,68 @@ of the returned `Atoms` object.
 
 ## Detecting a point group
 
-This is the lowest-level interface. It assumes that a tolerance has
-been explicitly set via `Atoms.info["tol"]`.
+An ASE `Atoms` object is passed to the function and a `string` with the
+point group of the molecule is returned.
 
 ```python
-from minimalsym import find_point_group
-
-## Set tolerance for molecule
-mol.info["tol"] = 0.05
+from minimalsym import get_point_group
 
 ## Detect point group for molecule
-pg_str, (paxis, saxis) = find_point_group(mol)
+pg_str = get_point_group(mol, asym_tol=0.05)
 
 ## Check output
 print("Detected Point group: ", pg_str)
 # Example output: "Detected Point group: C2v"
 ```
+
+---
+
+## Checking planarity
+
+An ASE `Atoms` object is passed to the function and a `bool` is returned.
+True if the molecule passed has planarity.
+
+```python
+from minimalsym import is_planar
+
+## Check planarity for molecule
+mol_is_planar = is_planar(mol, tol=0.05)
+
+## Check output
+print("Mol is planar: ", mol_is_planar)
+# Example output: "Mol is planar: True"
+```
+
+---
+
+## Get symmetry-inequivalent atoms
+
+Find symmetry-inequivalent atoms using all symmetry operations.
+
+Two atoms are in the same equivalence class if any symmetry operation (proper or improper) maps one onto the other.
+
+An ASE `Atoms` object is passed to the function and a `tuple` is returned.
+
+`tuple(unique, parent)`
+
+&nbsp; &nbsp; `unique` : sorted representative atom indices (one per class). 
+
+&nbsp; &nbsp; `parent` : `parent[i]` is the representative of atom `i`.
+
+```python
+from minimalsym import get_inequivalent
+
+## Get symmetry-iequivalent atoms for molecule
+atom_indices_list, representatives = get_inequivalent(mol, asym_tol=0.3)
+
+## Check output
+print("Inequivalent indices list: ", atom_indices_list)
+# Example output: "Inequivalent indices list: [0 1 2]"
+
+print("Representatives: ", representatives)
+# Example output: "Inequivalent indices list: [0 1 2 0 0 1 1 1 1 2 2 1]"
+```
+
+---
 
 See the [API reference](api/public.md) for full documentation.

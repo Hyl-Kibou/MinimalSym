@@ -5,15 +5,15 @@
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 **MinimalSym** is a Python package for handling molecular symmetry in **ASE** `Atoms` objects.
-It is a minimal, modified version of [MolSym](https://github.com/NASymmetry/MolSym), focused on core symmetry functionality.
 
 ---
 
 ## Features
 
-* Point group detection: Detect common point groups for molecules based on their geometry.
-* Molecule symmetrization: Apply symmetry operations to molecules, aligning them to the detected point group.
-* ASE Atoms-native workflow: Directly integrates with ASE Atoms objects, enabling smooth use in existing workflows.
+* **Point group detection**: Detect common point groups for molecules based on their geometry.
+* **Molecule symmetrization**: Apply symmetry operations to molecules, aligning them to the detected point group.
+* **Get symmetry-inequivalent points**: Atoms are grouped if any symmetry operation (proper or improper) maps one onto the other.
+* **ASE Atoms-native workflow**: Directly integrates with ASE Atoms objects, enabling smooth use in existing workflows.
 
 ---
 
@@ -89,7 +89,8 @@ See the full [API Reference](api/index.md).
 ## Acknowledgments
 
 This package is based on and inspired by
-[NASymmetry / MolSym](https://github.com/NASymmetry/MolSym).
+[NASymmetry / MolSym](https://github.com/NASymmetry/MolSym),
+modified to focus on core symmetry functionality.
 
 ---
 
@@ -103,4 +104,4 @@ Distributed under the MIT License. See `LICENSE` for details.
 
 If you find MinimalSym useful or have suggestions for improvement,
 please feel free to open an issue or pull request on 
-[GitHub](https://github.com/yourusername/minimalsym).
+[GitHub](https://github.com/hyl-kibou/minimalsym).

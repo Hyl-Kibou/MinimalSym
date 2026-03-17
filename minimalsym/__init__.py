@@ -1,4 +1,1 @@
-#from .molecule import Molecule
-from .pgdetect.flowchart import find_point_group
-#from .symtext.symtext import Symtext
-from .symmetrize import symmetrize
+from .minimalsym import symmetrize, get_point_group, get_inequivalent, is_planar

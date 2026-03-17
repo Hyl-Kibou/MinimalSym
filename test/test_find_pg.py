@@ -17,7 +17,11 @@ def test_find_point_group(name, pg_ans):
         strang = fn.read()
     #schema = qcel.models.Molecule.from_data(strang).dict()
     mol = read_file(file_path)
-    pg, (paxis, saxis) = minimalsym.find_point_group(mol)
+    pg_obj = minimalsym.symmetrizer.find_point_group(mol)
+    pg = pg_obj.pg
+    paxis = pg_obj.paxis
+    saxis = pg_obj.saxis
+
     print("Ans: ", pg)
     assert pg_ans == pg, f"Expected {pg_ans} got {pg} pa:{paxis} sa:{saxis}"
 

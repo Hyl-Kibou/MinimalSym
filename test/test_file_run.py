@@ -25,7 +25,7 @@ def check_xyz_folder(folder_path):
   path_list = [
       os.path.join(folder_path, f) for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f)) and f.endswith(".xyz") and f[0] != '_'
       ]
-
+  
   current_list_path = []
 
   for file in path_list:
@@ -37,9 +37,9 @@ def check_xyz_folder(folder_path):
     #write_tests(test_path, check_path, sym_path)
 
     current_list_path.append((test_path, check_path, sym_path))
-
+  
   return current_list_path
-
+  
 list_folders = ["new_xyz"]
 list_paths = []
 
@@ -67,14 +67,25 @@ def test_pg_file(file_test, file_check, file_sym):
   with open(file_check, 'r') as f:
       correct_pg_list = [line.rstrip('\n') for line in f]
   pg_is_same = (pg_list == correct_pg_list)
+
+  pg_error_mol = []
+  for ii in range(len(pg_list)):
+    if pg_list[ii] != correct_pg_list[ii]:
+      pg_error_mol.append(ii) 
+
   old_sym_list = read(file_sym, index=":")
   nummol_is_same = (len(sym_list) == len(old_sym_list))
+
+  error_mol = []
+
   for ii in range(len(sym_list)):
-      assert atoms_are_close(sym_list[ii], old_sym_list[ii]), f"geometry subset: {ii}"
+    if atoms_are_close(sym_list[ii], old_sym_list[ii]) == False:
+      error_mol.append(ii)
+
   geometry_is_same = all(
     atoms_are_close(a, b)
     for a, b in zip(sym_list, old_sym_list)
-  )
-  assert pg_is_same, f"pg_is_same: {pg_is_same}"
-  assert nummol_is_same, f"nummol_is_same: {nummol_is_same}"
-  assert geometry_is_same, f"geometry_is_same: {geometry_is_same}"
+)
+  assert pg_is_same, f"pg_is_same: {pg_is_same} {pg_error_mol} {[(ii, pg_list[ii], correct_pg_list[ii]) for ii in pg_error_mol]}"
+  assert nummol_is_same, f"nummol_is_same: {nummol_is_same} new: {len(sym_list)} old: {len(old_sym_list)}"
+  assert geometry_is_same, f"geometry_is_same: {geometry_is_same} {error_mol}"
