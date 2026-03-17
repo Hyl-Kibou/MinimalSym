@@ -7,7 +7,7 @@ theme:
     - navigation.expand
     - toc.follow
 
-repo_url: https://github.com/yourusername/minimalsym
+repo_url: https://github.com/hyl-kibou/minimalsym
 repo_name: minimalsym
 
 plugins:

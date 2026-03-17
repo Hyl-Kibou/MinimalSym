@@ -6,6 +6,7 @@ MinimalSym is tested with **Python 3.12–3.13**, but should also work with **Py
 
 - Python ≥ 3.9
 - NumPy
+- Numba
 
 > **Optional:** To create and manipulate molecules as `Atoms` objects, install [ASE](https://wiki.fysik.dtu.dk/ase/):
 > 
@@ -26,7 +27,7 @@ pip install minimalsym
 ## Install from source
 
 ```bash
-git clone https://github.com/yourusername/minimalsym.git
+git clone https://github.com/hyl-kibou/minimalsym.git
 cd minimalsym
 pip install -e .
 ```

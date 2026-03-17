@@ -8,8 +8,10 @@ The MinimalSym API is divided into two categories.
 
 Stable high-level functions intended for normal usage.
 
-- [`symmetrize`](public.md#symmetrize-operation)
-- [Point group detection](public.md#point-group-detection)
+- Symmetrize geometry
+- Point group detection
+- Planarity check
+- Get symmetry-inequivalent points
 
 See: [Public API](public.md)
 
