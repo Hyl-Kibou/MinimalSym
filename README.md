@@ -131,7 +131,7 @@ An ASE `Atoms` object is passed to the function and a `tuple` is returned.
 ```python
 from minimalsym import get_inequivalent
 
-## Get symmetry-iequivalent atoms for molecule
+## Get symmetry-inequivalent atoms for molecule
 atom_indices_list, representatives = get_inequivalent(mol, asym_tol=0.3)
 
 ## Check output

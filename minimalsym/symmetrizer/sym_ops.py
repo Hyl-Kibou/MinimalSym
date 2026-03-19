@@ -201,11 +201,11 @@ def reduce(n, i):
     tuple
         Tuple of n/g and i/g.
     """
-    g = gcd(n, i)
+    g = _gcd(n, i)
     return n//g, i//g
 
 @njit
-def gcd(A, B):
+def _gcd(A, B):
     """
     Euclid algorithm for finding the greatest common divisor between A and B.
 
@@ -227,4 +227,4 @@ def gcd(A, B):
         return a
     else:
         r = a % b
-        return gcd(b, r)
+        return _gcd(b, r)

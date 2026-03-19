@@ -135,7 +135,7 @@ def find_SEAs(mol):
     return SEAs
 
 @njit
-def isequivalent(A_masses, A_positions, B_masses, B_positions, mol_tol):
+def _isequivalent(A_masses, A_positions, B_masses, B_positions, mol_tol):
     matched = np.zeros(len(B_masses), dtype=np.bool_)
     tol2 = mol_tol*mol_tol
     for i in range(len(A_masses)):
@@ -159,7 +159,7 @@ def isequivalent(A_masses, A_positions, B_masses, B_positions, mol_tol):
 @njit
 def transform_isequivalent(positions, masses, mol_tol, matrix):
     positions_B = transform(positions, matrix)
-    return isequivalent(masses, positions, masses, positions_B, mol_tol)
+    return _isequivalent(masses, positions, masses, positions_B, mol_tol)
 
 @njit
 def _jit_calcmoit(positions, masses):

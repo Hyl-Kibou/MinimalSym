@@ -31,7 +31,7 @@ def test_symmetrize():
     #  [-0.    -0.757 -0.521]
     #  [ 0.     0.757 -0.521]]
     assert mol_symmetric.info["pg"] == "C2v", f"mol_symmetric.info[\"pg\"]: {mol_symmetric.info["pg"]}"
-    assert (mol.positions == [[ 0., 0., 0.066],[-0., -0.757, -0.521], [0., 0.757, -0.521]]).all(), f"mol.positions: {mol.positions}"
+    assert np.allclose(mol_symmetric.positions, [[ 0., 0., 0.066],[-0., -0.757, -0.521], [0., 0.757, -0.521]], atol=1e-3), f"mol.positions: {mol_symmetric.positions}"
 
 def test_get_point_group():
     mol = read(os.path.join(folder_path, "minimos.xyz"), index=":")[94]
@@ -58,7 +58,7 @@ def test_is_planar():
 def test_get_inequivalent():
     mol = read(os.path.join(folder_path, "minimos.xyz"), index=":")[0]
 
-    ## Get symmetry-iequivalent atoms for molecule
+    ## Get symmetry-inequivalent atoms for molecule
     atom_indices_list, representatives = get_inequivalent(mol, asym_tol=0.3)
 
     ## Check output

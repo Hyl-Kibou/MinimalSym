@@ -139,7 +139,7 @@ def _classify_subfamily(mol, seas, positions, masses, mol_tol, paxis, Cn_order):
     return pg, saxis
 
 
-def _classify_symmetric_top(mol, positions, masses, mol_tol):
+def _classify_general(mol, positions, masses, mol_tol):
     """
     Classify a symmetric top (two equal MOIT eigenvalues).
     Returns PointGroupResult.
@@ -169,37 +169,6 @@ def _classify_symmetric_top(mol, positions, masses, mol_tol):
 
     pg, saxis = _classify_subfamily(mol, seas, positions, masses, mol_tol, paxis, Cn_order)
     return PointGroupResult(pg=pg, paxis=paxis, saxis=saxis)
-
-# Im not sure about this
-# def _classify_asymmetric_rotor(mol, positions, masses, mol_tol, mol_axes):
-#     """
-#     Classify an asymmetric rotor (all MOIT eigenvalues distinct).
-#     Any Cn (n>=2) or mirror must coincide with a MOIT eigenvector.
-#     Returns PointGroupResult.
-#     """
-#     paxis = np.zeros(3)
-#     c2 = None
-#     for k in range(3):
-#         ax = mol_axes[:, k]
-#         if transform_isequivalent(positions, masses, mol_tol, Cn(ax, 2)):
-#             c2 = ax
-#             break
-
-#     if c2 is None:
-#         if transform_isequivalent(positions, masses, mol_tol, inversion_matrix()):
-#             return PointGroupResult(pg="Ci", paxis=paxis, saxis=np.zeros(3))
-#         for k in range(3):
-#             ax = mol_axes[:, k]
-#             if transform_isequivalent(positions, masses, mol_tol, reflection_matrix(ax)):
-#                 return PointGroupResult(pg="Cs", paxis=ax, saxis=np.zeros(3))
-#         return PointGroupResult(pg="C1", paxis=paxis, saxis=np.zeros(3))
-
-#     paxis = c2
-#     Cn_order = 2
-#     seas = find_SEAs(mol)
-#     pg, saxis = _classify_subfamily(mol, seas, positions, masses, mol_tol, paxis, Cn_order)
-#     return PointGroupResult(pg=pg, paxis=paxis, saxis=saxis)
-
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
@@ -256,16 +225,11 @@ def find_point_group(mol):
     evals_mol, evecs_mol = np.linalg.eigh(moit)
     _idx = evals_mol.argsort()
     Ia_mol, Ib_mol, Ic_mol = evals_mol[_idx]
-    mol_axes = evecs_mol[:, _idx]   # columns: eigenvectors sorted by eigenvalue
 
     if np.isclose(Ia_mol, 0.0, atol=mol_tol):
         return _classify_linear(mol, positions, masses, mol_tol)
 
     elif np.isclose(Ia_mol, Ib_mol, atol=mol_tol) and np.isclose(Ia_mol, Ic_mol, atol=mol_tol):
         return _classify_spherical_top(mol, positions, masses, mol_tol)
-
-    #elif np.isclose(Ia_mol, Ib_mol, atol=mol_tol) or np.isclose(Ib_mol, Ic_mol, atol=mol_tol):
-    return _classify_symmetric_top(mol, positions, masses, mol_tol)
-
-    #else:
-    #    return _classify_asymmetric_rotor(mol, positions, masses, mol_tol, mol_axes)
+        
+    return _classify_general(mol, positions, masses, mol_tol)
