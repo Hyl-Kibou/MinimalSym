@@ -98,7 +98,22 @@ def _classify_spherical_top(mol, positions, masses, mol_tol):
     else:
         # Tetrahedral (n == 3): use two of the three C2 axes.
         paxis, saxis = axes[0], axes[1]
-        pg = "Th" if invertable else "Td"
+
+        # Detect reflection symmetry (any sigma plane)
+        sigmav_chk, _ = _is_there_sigmav(mol, seas, paxis)
+        sigmah_chk = _is_there_sigmah(mol, paxis)
+
+        # Detect improper rotation S4 (characteristic of Td/Th)
+        S4 = Sn(paxis, 4)
+        has_S4 = transform_isequivalent(positions, masses, mol_tol, S4)
+
+        if invertable:
+            pg = "Th"
+        # elif sigmav_chk or sigmah_chk or has_S4:
+        elif has_S4: # Must have S4
+            pg = "Td"
+        else:
+            pg = "T"
 
     return PointGroupResult(pg=pg, paxis=paxis, saxis=saxis)
 

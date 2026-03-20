@@ -23,10 +23,12 @@ Point groups are classifications of molecules based on their symmetry operations
 MinimalSym can detect the following common molecular point groups:
 
 - C₁, Cₛ, Cᵢ
-- Cₙ, Cₙᵥ, Cₙₕ,
+- Cₙ, Cₙᵥ, Cₙₕ
 - Dₙ, Dₙₕ, Dₙd
 - Sₙ
-- I_h, T_h, T_d, O_h
+- T, T_h, T_d
+- O, O_h
+- I, I_h
 - C0v, D0h
 
 Detection depends on the symmetry present in the input geometry
