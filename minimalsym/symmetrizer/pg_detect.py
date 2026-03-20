@@ -201,8 +201,7 @@ def find_point_group(mol):
     2. Classify the rotor type from the eigenvalues:
        - Linear (Ia ~= 0): C0v or D0h.
        - Spherical top (Ia ~= Ib ~= Ic): T, Td, Th, O, Oh, I, Ih.
-       - Symmetric top (Ia ~= Ib or Ib ~= Ic): Cn, Cnv, Cnh, Dn, Dnh, Dnd, Sn.
-       - Asymmetric rotor (all distinct): C1, Cs, Ci, C2, C2v, C2h, D2, D2h.
+       - Symmetric top and Asymmetric rotor: Cn, Cnv, Cnh, Dn, Dnh, Dnd, Sn, C1, Cs, Ci.
     3. Subfamily (h/v/d) is determined from sigma_h, sigma_v, and ortho-C2.
 
     Based on:
