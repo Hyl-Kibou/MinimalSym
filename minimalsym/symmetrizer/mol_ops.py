@@ -126,7 +126,7 @@ def find_SEAs(mol):
     List[SEA]
         List of symmetry equivalent atom sets
     """
-    sea_id = _jit_find_SEAs(len(mol), mol.positions, mol.info['tol'])
+    sea_id = _jit_find_SEAs(len(mol), mol.positions, mol.info["geom_tol"])
     n_seas = int(sea_id.max()) + 1
     SEAs = []
     for k in range(n_seas):

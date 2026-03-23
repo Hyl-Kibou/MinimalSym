@@ -27,7 +27,7 @@ def _is_there_sigmah(mol, paxis):
     bool
     """
     sigmah = reflection_matrix(paxis)
-    return transform_isequivalent(mol.positions, mol.get_masses(), mol.info['tol'], sigmah)
+    return transform_isequivalent(mol.positions, mol.get_masses(), mol.info["geom_tol"], sigmah)
 
 
 def _is_there_sigmav(mol, SEAs, paxis):
@@ -47,7 +47,7 @@ def _is_there_sigmav(mol, SEAs, paxis):
     axes = []
     positions = mol.positions
     masses = mol.get_masses()
-    mol_tol = mol.info['tol']
+    mol_tol = mol.info["geom_tol"]
     for sea in SEAs:
         length = len(sea.subset)
         if length < 2:
@@ -94,7 +94,7 @@ def mol_is_planar(mol):
     -------
     bool
     """
-    mol_tol = mol.info['tol']
+    mol_tol = mol.info["geom_tol"]
     rank = np.linalg.matrix_rank(mol.positions, tol=mol_tol)
     if rank < 3:
         from .mol_orient import rotate_mol_to_symels

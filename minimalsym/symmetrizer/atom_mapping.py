@@ -57,7 +57,7 @@ def _where_you_go(mol, atom, symel):
     -------
     int or None
     """
-    w = _jit_where_you_go(mol.positions, mol.info['tol'], atom, symel.rrep)
+    w = _jit_where_you_go(mol.positions, mol.info["geom_tol"], atom, symel.rrep)
     return w if w != -1 else None
 
 
@@ -80,7 +80,7 @@ def _get_atom_mapping(mol, symels):
         If any atom fails to map under a symmetry operation.
     """
     rreps = np.array([s.rrep for s in symels])
-    amap = _jit_get_atom_mapping(mol.positions, mol.info['tol'], rreps)
+    amap = _jit_get_atom_mapping(mol.positions, mol.info["geom_tol"], rreps)
     failed = np.argwhere(amap == -1)
     if len(failed) > 0:
         atom, s = int(failed[0, 0]), int(failed[0, 1])

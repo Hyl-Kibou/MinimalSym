@@ -18,7 +18,7 @@ coords = np.array([
     [0.9197881882, 2.4580185570, 0.6297938832]])
 masses = [15.99491461957, 1.00782503223, 1.00782503223]
 molsym_mol = ase.Atoms(symbols=atoms, positions=coords)
-molsym_mol.info["tol"] = 0.05
+molsym_mol.info["geom_tol"] = 0.05
 com = np.array([1.24832167, 1.80686373, 0.02067886])
 
 """
@@ -69,10 +69,10 @@ def is_at_com(mol):
         -------
         bool
             True if the center of mass is within the tolerance defined by
-            ``mol.info["tol"]``, False otherwise.
+            ``mol.info["geom_tol"]``, False otherwise.
 
         """
-        if sum(abs(mol.get_center_of_mass())) < mol.info["tol"]:
+        if sum(abs(mol.get_center_of_mass())) < mol.info["geom_tol"]:
             return True
         else:
             return False

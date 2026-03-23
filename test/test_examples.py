@@ -21,7 +21,7 @@ def test_symmetrize():
     mol = Atoms(symbols=["O", "H", "H"], positions=positions)
 
     ## Symmetrize molecule
-    mol_symmetric = symmetrize(mol, asym_tol=0.05)
+    mol_symmetric = symmetrize(mol, geom_tol=0.05)
 
     ## Check output
     print("Detected Point group: ", mol_symmetric.info["pg"])
@@ -37,7 +37,7 @@ def test_get_point_group():
     mol = read(os.path.join(folder_path, "minimos.xyz"), index=":")[94]
 
     ## Detect point group for molecule
-    pg_str = get_point_group(mol, asym_tol=0.05)
+    pg_str = get_point_group(mol, geom_tol=0.05)
 
     ## Check output
     print("Detected Point group: ", pg_str)
@@ -47,7 +47,7 @@ def test_is_planar():
     mol = read(os.path.join(folder_path, "minimos.xyz"), index=":")[94]
 
     ## Check planarity for molecule
-    mol_is_planar = is_planar(mol, tol=0.05)
+    mol_is_planar = is_planar(mol, geom_tol=0.05)
 
     ## Check output
     print("Mol is planar: ", mol_is_planar)
@@ -59,7 +59,7 @@ def test_get_inequivalent():
     mol = read(os.path.join(folder_path, "minimos.xyz"), index=":")[0]
 
     ## Get symmetry-inequivalent atoms for molecule
-    atom_indices_list, representatives = get_inequivalent(mol, asym_tol=0.3)
+    atom_indices_list, representatives = get_inequivalent(mol, geom_tol=0.3)
 
     ## Check output
     print("Inequivalent indices list: ", atom_indices_list)

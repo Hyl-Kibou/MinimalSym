@@ -6,13 +6,14 @@ import pytest
 
 PATH = os.path.dirname(os.path.realpath(__file__))
 ASYM_TOL = 0.05
+EIGEN_TOL = None
 
 def write_tests(file_test, file_check, file_sym):
   listmol = read(file_test, index=":")
   pg_list = []
   smol_list = []
   for imol in listmol:
-    smol = symmetrize(imol, asym_tol=ASYM_TOL)
+    smol = symmetrize(imol, geom_tol=ASYM_TOL, eigen_tol=EIGEN_TOL)
     smol_list.append(smol)
     pg_list.append(smol.info['pg'])
   with open(file_check, "w") as f:
@@ -60,7 +61,7 @@ def test_pg_file(file_test, file_check, file_sym):
   pg_list = []
   sym_list = []
   for imol in listmol:
-    smol = symmetrize(imol, asym_tol=ASYM_TOL)
+    smol = symmetrize(imol, geom_tol=ASYM_TOL, eigen_tol=EIGEN_TOL)
     sym_list.append(smol)
     pg_list.append(smol.info['pg'])
   correct_pg_list = []
@@ -76,11 +77,11 @@ def test_pg_file(file_test, file_check, file_sym):
   old_sym_list = read(file_sym, index=":")
   nummol_is_same = (len(sym_list) == len(old_sym_list))
 
-  error_mol = []
+  geometry_error_mol = []
 
   for ii in range(len(sym_list)):
     if atoms_are_close(sym_list[ii], old_sym_list[ii]) == False:
-      error_mol.append(ii)
+      geometry_error_mol.append(ii)
 
   geometry_is_same = all(
     atoms_are_close(a, b)
@@ -88,4 +89,4 @@ def test_pg_file(file_test, file_check, file_sym):
 )
   assert pg_is_same, f"pg_is_same: {pg_is_same} {pg_error_mol} {[(ii, pg_list[ii], correct_pg_list[ii]) for ii in pg_error_mol]}"
   assert nummol_is_same, f"nummol_is_same: {nummol_is_same} new: {len(sym_list)} old: {len(old_sym_list)}"
-  assert geometry_is_same, f"geometry_is_same: {geometry_is_same} {error_mol}"
+  assert geometry_is_same, f"geometry_is_same: {geometry_is_same} {geometry_error_mol}"

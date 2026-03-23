@@ -135,9 +135,17 @@ def normalize(a):
     return a / n
 
 @njit
-def vec_isclose(a, b, rtol=1e-05, atol=1e-08):
+def float_isclose(a: float, b: float, rtol:float=1e-05, atol:float=1e-08) -> bool:
     """Compare two floats (Numba-compatible)."""
-    return np.abs(a - b) <= (atol + rtol * np.abs(b))
+    return np.abs(a - b) <= (atol + rtol * max(np.abs(b), np.abs(a)))
+
+@njit
+def inertia_isclose(a: float, b: float, rtol:float=1e-05, atol:float=1e-08) -> bool:
+    """Compare two inertia (Numba-compatible)."""
+    if a == 0.0 or b == 0.0:
+        return float_isclose(a, b, rtol=0.0, atol=atol)
+    else:
+        return float_isclose(a, b, rtol=rtol, atol=0.0)
 
 @njit
 def issame_axis(a, b, tol=global_tol):
@@ -165,7 +173,7 @@ def issame_axis(a, b, tol=global_tol):
     if (A_vector == np.zeros(3)).all() or (B_vector == np.zeros(3)).all():
         return False
     d = np.abs(np.dot(A_vector, B_vector))
-    return vec_isclose(d, 1.0, atol=tol)
+    return float_isclose(d, 1.0, atol=tol)
 
 @njit
 def isfactor(n, a):

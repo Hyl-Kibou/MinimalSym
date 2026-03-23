@@ -9,7 +9,7 @@ Public names consumed by pg_detect.py:
 import numpy as np
 from numba import njit
 
-from .sym_ops import Cn, normalize, vec_isclose, issame_axis
+from .sym_ops import Cn, normalize, float_isclose, issame_axis
 from .mol_ops import transform_isequivalent
 
 
@@ -63,7 +63,7 @@ def _jit_find_C3s_for_Ih(size, positions, masses, mol_tol):
                 nij2 = rij[0]*rij[0] + rij[1]*rij[1] + rij[2]*rij[2]
                 njk2 = rjk[0]*rjk[0] + rjk[1]*rjk[1] + rjk[2]*rjk[2]
                 nik2 = rik[0]*rik[0] + rik[1]*rik[1] + rik[2]*rik[2]
-                if vec_isclose(nij2, njk2, atol=mol_tol) and vec_isclose(nij2, nik2, atol=mol_tol):
+                if float_isclose(nij2, njk2, atol=mol_tol) and float_isclose(nij2, nik2, atol=mol_tol):
                     c3_axis = normalize(np.cross(rij, rjk))
                     if not (c3_axis == np.zeros(3)).all():
                         c3 = Cn(c3_axis, 3)
@@ -99,7 +99,7 @@ def _find_C3s_for_Ih(mol):
     -------
     List[np.array]  — each array has shape (3,)
     """
-    return _jit_find_C3s_for_Ih(len(mol), mol.positions, mol.get_masses(), mol.info['tol'])
+    return _jit_find_C3s_for_Ih(len(mol), mol.positions, mol.get_masses(), mol.info["geom_tol"])
 
 
 # ── Octahedral geometry ───────────────────────────────────────────────────────
@@ -127,9 +127,9 @@ def _check_square(va, vb, a, b, c, d, positions, masses, mol_tol):
         Unit C4-axis if valid square and rotation leaves molecule invariant;
         otherwise a zero vector.
     """
-    if (vec_isclose(a, b, atol=mol_tol) and
-            vec_isclose(c, d, atol=mol_tol) and
-            vec_isclose(a, c, atol=mol_tol)):
+    if (float_isclose(a, b, atol=mol_tol) and
+            float_isclose(c, d, atol=mol_tol) and
+            float_isclose(a, c, atol=mol_tol)):
         c4_axis = normalize(np.cross(va, vb))
         if not (c4_axis == np.zeros(3)).all():
             c4 = Cn(c4_axis, 4)
@@ -232,4 +232,4 @@ def _find_C4s_for_Oh(mol):
     -------
     List[np.array]  — each array has shape (3,)
     """
-    return _jit_find_C4s_for_Oh(len(mol), mol.positions, mol.get_masses(), mol.info['tol'])
+    return _jit_find_C4s_for_Oh(len(mol), mol.positions, mol.get_masses(), mol.info["geom_tol"])

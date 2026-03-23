@@ -8,22 +8,22 @@ so that the molecule sits in the canonical frame expected by pg_to_symels().
 import numpy as np
 from numba import njit
 
-from .sym_ops import vec_norm, normalize, vec_isclose
+from .sym_ops import vec_norm, normalize, float_isclose
 from .mol_ops import transform
 from .constants import NUMERICAL_TOL as global_tol
 
 
 @njit
 def _jit_rotate_mol_to_symels(positions, paxis, saxis):
-    if vec_isclose(vec_norm(paxis), 0.0, atol=global_tol):
+    if float_isclose(vec_norm(paxis), 0.0, atol=global_tol):
         rmat = rmat_inv = np.eye(3)
         return positions, rmat, rmat_inv
     z = paxis
-    if vec_isclose(vec_norm(saxis), 0.0, atol=global_tol):
+    if float_isclose(vec_norm(saxis), 0.0, atol=global_tol):
         x = np.zeros(3)
         for trial_vec in np.eye(3):
             x = np.cross(trial_vec, z)
-            if not vec_isclose(vec_norm(x), 0.0, atol=global_tol):
+            if not float_isclose(vec_norm(x), 0.0, atol=global_tol):
                 x = normalize(x)
                 break
         y = normalize(np.cross(z, x))

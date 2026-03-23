@@ -10,7 +10,7 @@ Public names consumed by pg_detect.py:
 import numpy as np
 from numba import njit
 
-from .sym_ops import Cn, vec_norm_axis, normalize, vec_isclose, issame_axis, isfactor
+from .sym_ops import Cn, vec_norm_axis, normalize, inertia_isclose, issame_axis, isfactor
 from .mol_ops import calcmoit, transform_isequivalent
 
 
@@ -83,7 +83,8 @@ def _find_rotation_sets(mol, SEAs):
     -------
     List[List[RotationElement]]
     """
-    mol_tol = mol.info['tol']
+    mol_tol = mol.info["geom_tol"]
+    eigen_tol = mol.info['eigen_tol']
     out_all_SEAs = []
     for sea in SEAs:
         length = len(sea.subset)
@@ -100,12 +101,12 @@ def _find_rotation_sets(mol, SEAs):
             idx = evals.argsort()
             Ia, Ib, Ic = evals[idx]
             Iav, Ibv, Icv = [evecs[:, i] for i in idx]
-            if np.isclose(Ia, Ib, atol=mol_tol) and np.isclose(Ia, Ic, atol=mol_tol):
+            if inertia_isclose(Ia, Ib, atol=mol_tol, rtol=eigen_tol) and inertia_isclose(Ia, Ic, atol=mol_tol, rtol=eigen_tol):
                 sea.label = "Spherical"
-            elif np.isclose(Ia + Ib, Ic, atol=mol_tol):
+            elif inertia_isclose(Ia + Ib, Ic, atol=mol_tol, rtol=eigen_tol):
                 axis = Icv
                 sea.axis = axis
-                if np.isclose(Ia, Ib, atol=mol_tol):
+                if inertia_isclose(Ia, Ib, atol=mol_tol, rtol=eigen_tol):
                     sea.label = "Regular Polygon"
                     for i in range(2, length + 1):
                         if isfactor(length, i):
@@ -116,12 +117,12 @@ def _find_rotation_sets(mol, SEAs):
                         if isfactor(length, i):
                             out_per_SEA.append(RotationElement(axis, i))
             else:
-                if not (np.isclose(Ia, Ib, atol=mol_tol) or np.isclose(Ib, Ic, atol=mol_tol)):
+                if not (inertia_isclose(Ia, Ib, atol=mol_tol, rtol=eigen_tol) or inertia_isclose(Ib, Ic, atol=mol_tol, rtol=eigen_tol)):
                     sea.label = "Asymmetric Rotor"
                     for ax in [Iav, Ibv, Icv]:
                         out_per_SEA.append(RotationElement(ax, 2))
                 else:
-                    if np.isclose(Ia, Ib, atol=mol_tol):
+                    if inertia_isclose(Ia, Ib, atol=mol_tol, rtol=eigen_tol):
                         sea.label = "Oblate Symmetric Top"
                         axis = Icv
                         sea.axis = Icv
@@ -153,12 +154,13 @@ def _find_rotations(mol, rotation_set):
     """
     positions = mol.positions
     masses = mol.get_masses()
-    mol_tol = mol.info['tol']
+    mol_tol = mol.info["geom_tol"]
+    eigen_tol = mol.info['eigen_tol']
     if len(rotation_set) < 1:
         return []
     molmoit = calcmoit(mol)
     evals = np.sort(np.linalg.eigh(molmoit)[0])
-    if evals[0] == 0.0 and np.isclose(evals[1], evals[2], atol=mol_tol):
+    if evals[0] == 0.0 and inertia_isclose(evals[1], evals[2], atol=mol_tol, rtol=eigen_tol):
         for i in range(np.shape(positions)[0]):
             if normalize(positions[i, :]) is not None:
                 axis = normalize(positions[0, :])
@@ -315,7 +317,7 @@ def _find_a_c2(mol, SEAs):
     """
     positions = mol.positions
     masses = mol.get_masses()
-    mol_tol = mol.info['tol']
+    mol_tol = mol.info["geom_tol"]
     for sea in SEAs:
         a = _c2a(positions, masses, mol_tol, sea.subset)
         if len(a) != 0:
@@ -349,10 +351,10 @@ def _is_there_ortho_c2(mol, SEAs, paxis):
     -------
     tuple(bool, np.array or None)
     """
-    ortho_tol = mol.info["tol"] / _compute_R_max(mol.positions, paxis) * 1.10
+    ortho_tol = mol.info["geom_tol"] / _compute_R_max(mol.positions, paxis) * 1.10
     positions = mol.positions
     masses = mol.get_masses()
-    mol_tol = mol.info['tol']
+    mol_tol = mol.info["geom_tol"]
     for sea in SEAs:
         b = _c2b(positions, masses, mol_tol, sea.subset, exclude_axis=paxis)
         if len(b) != 0:
@@ -394,7 +396,7 @@ def _num_C2(mol, SEAs):
     axes = []
     positions = mol.positions
     masses = mol.get_masses()
-    mol_tol = mol.info['tol']
+    mol_tol = mol.info["geom_tol"]
     for sea in SEAs:
         a = _c2a(positions, masses, mol_tol, sea.subset, return_all=True)
         if len(a) != 0:

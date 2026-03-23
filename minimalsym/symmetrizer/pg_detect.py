@@ -17,8 +17,9 @@ Internal implementation is split across three focused sub-modules:
 
 import numpy as np
 from dataclasses import dataclass
+import warnings
 
-from .sym_ops import rotation_matrix, inversion_matrix, Sn, Cn, normalize, reflection_matrix
+from .sym_ops import rotation_matrix, inversion_matrix, Sn, normalize, inertia_isclose
 from .mol_ops import calcmoit, transform_isequivalent, find_SEAs
 from .constants import IH_C2_C3_ANGLE, IH_ANGLE_TOL
 
@@ -71,7 +72,12 @@ def _classify_spherical_top(mol, positions, masses, mol_tol):
     Returns PointGroupResult.
     """
     seas = find_SEAs(mol)
-    n, axes = _num_C2(mol, seas)
+    num_C2 = _num_C2(mol, seas)
+    if num_C2 is None:
+        warnings.warn("Molecule was wrongly classified as a spherical top, probably due to high eigen_tol. " \
+        "Will continue with an assigned general classification.")
+        return _classify_general(mol, positions, masses, mol_tol)
+    n, axes = num_C2
     invertable = transform_isequivalent(positions, masses, mol_tol, inversion_matrix())
 
     if n == 15:
@@ -95,7 +101,7 @@ def _classify_spherical_top(mol, positions, masses, mol_tol):
         paxis, saxis = c4s[0], c4s[1]
         pg = "Oh" if invertable else "O"
 
-    else:
+    elif n == 3:
         # Tetrahedral (n == 3): use two of the three C2 axes.
         paxis, saxis = axes[0], axes[1]
 
@@ -114,6 +120,8 @@ def _classify_spherical_top(mol, positions, masses, mol_tol):
             pg = "Td"
         else:
             pg = "T"
+    else:
+        raise RuntimeError("Molecule was wrongly classified as a spherical top, probably due to high eigen_tol.")
 
     return PointGroupResult(pg=pg, paxis=paxis, saxis=saxis)
 
@@ -211,7 +219,7 @@ def find_point_group(mol):
     Parameters
     ----------
     mol : ase.Atoms
-        Molecule with mol.info['tol'] set to the geometric tolerance.
+        Molecule with mol.info["geom_tol"] set to the geometric tolerance.
 
     Returns
     -------
@@ -223,12 +231,17 @@ def find_point_group(mol):
     Raises
     ------
     Exception
-        If mol.info['tol'] is not set.
+        If mol.info["geom_tol"] is not set.
     """
     try:
-        mol_tol = mol.info['tol']
+        mol_tol = mol.info["geom_tol"]
     except KeyError:
-        raise Exception("Atoms object tolerance hasn't been set. Set it with Atoms.info['tol']=.")
+        raise Exception("Atoms object geometric tolerance hasn't been set. Set it with Atoms.info[\"geom_tol\"]=.")
+
+    try:
+        eigen_tol = mol.info['eigen_tol']
+    except KeyError:
+        raise Exception("Atoms object eigen tolerance hasn't been set. Set it with Atoms.info[\"eigen_tol\"]=.")
 
     mol = mol.copy()
     positions = mol.positions
@@ -240,10 +253,10 @@ def find_point_group(mol):
     _idx = evals_mol.argsort()
     Ia_mol, Ib_mol, Ic_mol = evals_mol[_idx]
 
-    if np.isclose(Ia_mol, 0.0, atol=mol_tol):
+    if inertia_isclose(Ia_mol, 0.0, atol=mol_tol, rtol=eigen_tol):
         return _classify_linear(mol, positions, masses, mol_tol)
 
-    elif np.isclose(Ia_mol, Ib_mol, atol=mol_tol) and np.isclose(Ia_mol, Ic_mol, atol=mol_tol):
+    elif inertia_isclose(Ia_mol, Ib_mol, atol=mol_tol, rtol=eigen_tol) and inertia_isclose(Ia_mol, Ic_mol, atol=mol_tol, rtol=eigen_tol):
         return _classify_spherical_top(mol, positions, masses, mol_tol)
-        
+
     return _classify_general(mol, positions, masses, mol_tol)

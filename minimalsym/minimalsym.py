@@ -3,13 +3,13 @@ minimalsym.py — Public API for molecular symmetry analysis.
 
 Public functions
 ----------------
-  get_point_group(mol, asym_tol)  -> str
+  get_point_group(mol, geom_tol)  -> str
 
   is_planar(mol, tol)             -> bool
 
-  get_inequivalent(mol, asym_tol) -> (unique, parent)
+  get_inequivalent(mol, geom_tol) -> (unique, parent)
 
-  symmetrize(mol_in, asym_tol)    -> ase.Atoms
+  symmetrize(mol_in, geom_tol)    -> ase.Atoms
 """
 
 import numpy as np
@@ -58,18 +58,38 @@ def _validate_mol(mol, tol, min_atoms=1):
             f"Molecule must have at least {min_atoms} atom(s), got {len(mol)}."
         )
 
+def _set_tolerances(mol, geom_tol, eigen_tol):
+    mol.info["geom_tol"] = geom_tol
+    if eigen_tol is None:
+        mol.info["eigen_tol"] = _estimate_eigen_tol(
+            mol.positions, mol.get_masses(), geom_tol
+        )
+    else:
+        mol.info["eigen_tol"] = eigen_tol
+
+# ── Estimate a value for eigen tolerance ───────────────────────────────────────
+
+def _estimate_eigen_tol(positions, masses, mol_tol, factor=2.0):
+    R2 = np.average(np.sum(positions**2, axis=1), weights=masses)
+    R = np.sqrt(R2)
+    if R == 0:
+        return 1.0  # fallback for degenerate case
+    return factor * mol_tol / R
 
 # ── Point group & planarity ────────────────────────────────────────────────────
 
-def get_point_group(mol: "Atoms", asym_tol: float = 0.05) -> str:
+def get_point_group(mol: "Atoms", geom_tol: float = 0.05, eigen_tol: float|None = None) -> str:
     """
     Determine the point group of a molecule.
 
     Parameters
     ----------
     mol : ase.Atoms
-    asym_tol : float, optional
+    geom_tol : float, optional
         Geometric tolerance (default 0.05 Å).
+    eigen_tol : float, optional
+        Relative tolerance for eigenvalues (default None,
+        internal worker will determine an appropriate float).
 
     Returns
     -------
@@ -78,30 +98,30 @@ def get_point_group(mol: "Atoms", asym_tol: float = 0.05) -> str:
     Raises
     ------
     TypeError   — mol is not ase.Atoms.
-    ValueError  — asym_tol <= 0 or mol is empty.
+    ValueError  — geom_tol <= 0 or mol is empty.
     RuntimeError — point-group detection failed internally.
     """
-    _validate_mol(mol, asym_tol, min_atoms=1)
+    _validate_mol(mol, geom_tol, min_atoms=1)
     mol = mol.copy()
-    mol.info['tol'] = asym_tol
+    _set_tolerances(mol, geom_tol, eigen_tol)
     try:
         result = find_point_group(mol)
     except Exception as exc:
         raise RuntimeError(
             f"Point group detection failed for molecule with {len(mol)} atoms "
-            f"and tolerance {asym_tol}. Original error: {exc}"
+            f"and tolerance {geom_tol}. Original error: {exc}"
         ) from exc
     return result.pg
 
 
-def is_planar(mol: "Atoms", tol: float = 0.05) -> bool:
+def is_planar(mol: "Atoms", geom_tol: float = 0.05) -> bool:
     """
     Check whether all atoms of a molecule lie in a common plane.
 
     Parameters
     ----------
     mol : ase.Atoms
-    tol : float, optional
+    geom_tol : float, optional
         Geometric tolerance (default 0.05 Å).
 
     Returns
@@ -113,9 +133,9 @@ def is_planar(mol: "Atoms", tol: float = 0.05) -> bool:
     TypeError  — mol is not ase.Atoms.
     ValueError — tol <= 0 or mol has fewer than 3 atoms.
     """
-    _validate_mol(mol, tol, min_atoms=3)
+    _validate_mol(mol, geom_tol, min_atoms=3)
     mol = mol.copy()
-    mol.info['tol'] = tol
+    mol.info["geom_tol"] = geom_tol
     return mol_is_planar(mol)
 
 
@@ -168,7 +188,7 @@ def _union_find_pass(atom_map, parent, symel_indices):
             parent[idx] = owner
 
 
-def get_inequivalent(mol_in: "Atoms", asym_tol: float = 0.3):
+def get_inequivalent(mol_in: "Atoms", geom_tol: float = 0.3, eigen_tol: float|None = None) -> tuple:
     """
     Find symmetry-inequivalent atoms using all symmetry operations.
 
@@ -178,7 +198,11 @@ def get_inequivalent(mol_in: "Atoms", asym_tol: float = 0.3):
     Parameters
     ----------
     mol_in : ase.Atoms
-    asym_tol : float, optional (default 0.3 Å)
+    geom_tol : float, optional
+        Geometric tolerance (default 0.3 Å)
+    eigen_tol : float, optional
+        Relative tolerance for eigenvalues (default None,
+        internal worker will determine an appropriate float).
 
     Returns
     -------
@@ -190,9 +214,9 @@ def get_inequivalent(mol_in: "Atoms", asym_tol: float = 0.3):
     ------
     TypeError, ValueError, RuntimeError
     """
-    _validate_mol(mol_in, asym_tol, min_atoms=1)
+    _validate_mol(mol_in, geom_tol, min_atoms=1)
     mol_in = mol_in.copy()
-    mol_in.info["tol"] = asym_tol
+    _set_tolerances(mol_in, geom_tol, eigen_tol)
 
     try:
         asym_symtext = Symtext.from_molecule(mol_in)
@@ -246,8 +270,8 @@ def _project_linear(mol, sea, asym_symtext):
             mol.positions[atom_j, :] = np.array([0.0, 0.0, np.dot(mol.positions[atom_j, :], z)])
         return True  # signal to break — single SEA covers the whole molecule
 
-    # D0h: atoms come in inversion-related pairs.
     # Maybe should ask elif asym_symtext.pg.family == "D":
+    # D0h: atoms come in inversion-related pairs.
     if atom_i == asym_symtext.atom_map[atom_i, 1]:
         mol.positions[atom_i, :] = np.array([0.0, 0.0, 0.0])
     else:
@@ -327,14 +351,13 @@ def _map_sea_from_representative(mol, sea, atom_i, asym_symtext):
                 )
                 break
 
-
-def symmetrize(mol_in: "Atoms", asym_tol: float = 0.05) -> "Atoms":
+def symmetrize(mol_in: "Atoms", geom_tol: float = 0.05, eigen_tol: float|None = None) -> "Atoms":
     """
     Symmetrize the geometry of a molecule to exact point-group symmetry.
 
     Algorithm overview
     ------------------
-    1. Build a Symtext at tolerance *asym_tol* to detect the point group
+    1. Build a Symtext at tolerance *geom_tol* to detect the point group
        and the atom permutation map.
     2. For each set of symmetry-equivalent atoms (SEA):
 
@@ -352,16 +375,19 @@ def symmetrize(mol_in: "Atoms", asym_tol: float = 0.05) -> "Atoms":
        c. Map the remaining SEA atoms from the representative using the stored
           matrix representation of the connecting symel.
 
-    3. Set mol.info["tol"] = 1e-12 on the result so downstream detection
+    3. Set mol.info["geom_tol"] = 1e-12 on the result so downstream detection
        sees exact symmetry.
 
     Parameters
     ----------
     mol_in : ase.Atoms
         Molecule to be symmetrized.
-    asym_tol : float, optional
+    geom_tol : float, optional
         Tolerance for detecting the initial (possibly distorted) point group.
         Default is 0.05 Å.
+    eigen_tol : float, optional
+        Relative tolerance for eigenvalues (default None,
+        internal worker will determine an appropriate float).
 
     Returns
     -------
@@ -376,7 +402,9 @@ def symmetrize(mol_in: "Atoms", asym_tol: float = 0.05) -> "Atoms":
         Re-raises unexpected symmetry element types.
     """
     mol_in = mol_in.copy()
-    mol_in.info["tol"] = asym_tol
+
+    _set_tolerances(mol_in, geom_tol, eigen_tol)
+
     seas = find_SEAs(mol_in)
 
     try:
@@ -400,5 +428,5 @@ def symmetrize(mol_in: "Atoms", asym_tol: float = 0.05) -> "Atoms":
         _project_atom(mol, atom_i, asym_symtext)
         _map_sea_from_representative(mol, sea, atom_i, asym_symtext)
 
-    mol.info["tol"] = SYMMETRIZED_TOL
+    mol.info["geom_tol"] = SYMMETRIZED_TOL
     return mol

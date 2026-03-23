@@ -1,4 +1,4 @@
-Molecule.tol -> Atoms.info["tol"]
+Molecule.tol -> Atoms.info["geom_tol"]
 Molecule.atoms -> Atoms.get_chemical_symbols()
 Molecule.natoms -> len(Atoms) || Atoms.info["num"]
 Molecule.coords -> Atoms.positions
