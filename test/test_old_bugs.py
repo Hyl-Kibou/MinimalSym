@@ -32,3 +32,16 @@ def test_collapse():
         for jj in range(ii + 1, len(smol.positions)):
             assert not np.allclose(smol.positions[ii], smol.positions[jj])    
 
+# Some D family point groups were assigned without proper validation,
+# resulting in mapping errors.
+def test_overestimate_D_family():
+    file_path1 = os.path.join(PATH, "new_xyz", f"overestimation_D_A.xyz")
+    file_path2 = os.path.join(PATH, "new_xyz", f"overestimation_D_B.xyz")
+
+    file_path_list = [file_path1, file_path2]
+
+    for path in file_path_list:
+        mol = read(path)
+        smol = minimalsym.symmetrize(mol)
+
+

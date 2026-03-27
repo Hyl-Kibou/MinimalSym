@@ -80,9 +80,9 @@ def _jit_find_C3s_for_Ih(size, positions, masses, mol_tol):
             unique_axes.append(i)
     chk = len(unique_axes)
     if chk != 10:
-        raise Exception(
-            f"Unexpected number of C3 axes for Ih point group: "
-            f"Found {chk} unique C3 axes, expected 10"
+        print("DEBUG: C3 axes count:", chk)
+        raise RuntimeError(
+            "Unexpected number of C3 axes for Ih point group, expected 10."
         )
     return unique_axes
 
@@ -213,9 +213,9 @@ def _jit_find_C4s_for_Oh(size, positions, masses, mol_tol):
             unique_axes.append(i)
     chk = len(unique_axes)
     if chk != 3:
-        raise Exception(
-            f"Unexpected number of C4 axes for Oh point group: "
-            f"Found {chk} unique C4 axes, expected 3"
+        print("DEBUG: c4 axes count", chk)
+        raise RuntimeError(
+            "Unexpected number of C4 axes for Oh point group, expected 3."
         )
     return unique_axes
 

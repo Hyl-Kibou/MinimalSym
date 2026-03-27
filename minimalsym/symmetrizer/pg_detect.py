@@ -19,7 +19,7 @@ import numpy as np
 from dataclasses import dataclass
 import warnings
 
-from .sym_ops import rotation_matrix, inversion_matrix, Sn, normalize, inertia_isclose
+from .sym_ops import rotation_matrix, inversion_matrix, Sn, normalize, inertia_isclose, generate_cyclic_axes, Cn, reflection_matrix
 from .mol_ops import calcmoit, transform_isequivalent, find_SEAs
 from .constants import IH_C2_C3_ANGLE, IH_ANGLE_TOL
 
@@ -75,24 +75,24 @@ def _classify_spherical_top(mol, positions, masses, mol_tol):
     num_C2 = _num_C2(mol, seas)
     if num_C2 is None:
         warnings.warn("Molecule was wrongly classified as a spherical top, probably due to high eigen_tol. " \
-        "Will continue with an assigned general classification.")
+            "Process will continue as general symmetry.")
         return _classify_general(mol, positions, masses, mol_tol)
     n, axes = num_C2
     invertable = transform_isequivalent(positions, masses, mol_tol, inversion_matrix())
 
     if n == 15:
-        # Icosahedral: paxis = C5 axis, saxis from golden-ratio geometry.
-        tempaxis = axes[0]
+        # Icosahedral: paxis = C5 axis, saxis = C2 axis from golden-ratio geometry.
+        c2_axis = axes[0]
         c3s = _find_C3s_for_Ih(mol)
         saxis = np.zeros(3)
         for c3 in c3s:
-            if np.isclose(np.arccos(abs(np.dot(c3, tempaxis))), IH_C2_C3_ANGLE, atol=IH_ANGLE_TOL):
-                taxis = normalize(np.cross(c3, tempaxis))
-                saxis = normalize(np.cross(taxis, tempaxis))
+            if np.isclose(np.arccos(abs(np.dot(c3, c2_axis))), IH_C2_C3_ANGLE, atol=IH_ANGLE_TOL):
+                taxis = normalize(np.cross(c3, c2_axis))
+                saxis = normalize(np.cross(taxis, c2_axis))
                 break
         phi = (1 + np.sqrt(5.0)) / 2
         theta = np.arccos(phi / np.sqrt(1 + phi**2))
-        paxis = np.dot(rotation_matrix(saxis, theta), tempaxis)
+        paxis = np.dot(rotation_matrix(saxis, theta), c2_axis)
         pg = "Ih" if invertable else "I"
 
     elif n == 9:
@@ -121,10 +121,35 @@ def _classify_spherical_top(mol, positions, masses, mol_tol):
         else:
             pg = "T"
     else:
-        raise RuntimeError("Molecule was wrongly classified as a spherical top, probably due to high eigen_tol.")
+        warnings.warn("Molecule was wrongly classified as a spherical top, probably due to high eigen_tol. " \
+            "Process will continue as general symmetry.")
+        return _classify_general(mol, positions, masses, mol_tol)
 
     return PointGroupResult(pg=pg, paxis=paxis, saxis=saxis)
 
+def _validate_all_c2_ortho(positions, masses, mol_tol, paxis, c2_ortho, Cn_order):
+    """
+    Validate the c2 orthogonal rotations for a molecule.
+    Generates all the c2 orthogonal axis from c2_ortho,
+    generates their rotation matrix and validates it.
+    """
+    c2_ortho_axes = generate_cyclic_axes(paxis, c2_ortho, Cn_order)
+    for c2_ortho_axis in c2_ortho_axes:
+        if not transform_isequivalent(positions, masses, mol_tol, Cn(c2_ortho_axis, 2)):
+            return False
+    return True
+
+def _validate_all_sigmav(positions, masses, mol_tol, paxis, sigmav, Cn_order):
+    """
+    Validate the vertical mirror planes for a molecule.
+    Generates all the norm axis of the mirror planes from sigmav,
+    generates their reflection matrix and validates it.
+    """
+    sigmav_axes = generate_cyclic_axes(paxis, sigmav, Cn_order)
+    for sigmav_axis in sigmav_axes:
+        if not transform_isequivalent(positions, masses, mol_tol, reflection_matrix(sigmav_axis)):
+            return False
+    return True
 
 def _classify_subfamily(mol, seas, positions, masses, mol_tol, paxis, Cn_order):
     """
@@ -137,11 +162,21 @@ def _classify_subfamily(mol, seas, positions, masses, mol_tol, paxis, Cn_order):
     sigmah_chk = _is_there_sigmah(mol, paxis)
 
     if ortho_c2_chk:
+        ortho_c2_chk = _validate_all_c2_ortho(positions, masses, mol_tol, paxis, c2_ortho, Cn_order)
+
+    if sigmav_chk:
+        sigmav_chk = _validate_all_sigmav(positions, masses, mol_tol, paxis, sigmav, Cn_order)
+
+    if ortho_c2_chk:
         saxis = c2_ortho
         if sigmah_chk:
             pg = "D" + str(Cn_order) + "h"
         elif sigmav_chk:
-            pg = "D" + str(Cn_order) + "d"
+            S2n = Sn(paxis, Cn_order * 2)
+            if transform_isequivalent(positions, masses, mol_tol, S2n):
+                pg = "D" + str(Cn_order) + "d"
+            else:
+                pg = "D" + str(Cn_order)
         else:
             pg = "D" + str(Cn_order)
     elif sigmah_chk:
@@ -164,7 +199,7 @@ def _classify_subfamily(mol, seas, positions, masses, mol_tol, paxis, Cn_order):
 
 def _classify_general(mol, positions, masses, mol_tol):
     """
-    Classify a symmetric top (two equal MOIT eigenvalues).
+    Classify a general symmetry.
     Returns PointGroupResult.
     """
     paxis = np.zeros(3)

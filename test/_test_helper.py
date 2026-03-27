@@ -1,5 +1,6 @@
 import numpy as np
 import ase
+from minimalsym.minimalsym import _set_tolerances
 
 def read_file(file):
 
@@ -23,7 +24,6 @@ def read_file(file):
     positions = np.array(positions)
 
     atoms = ase.Atoms(symbols=symbols, positions=positions)
-    atoms.info["geom_tol"] = 0.05
-    atoms.info['eigen_tol'] = 1e-05
+    _set_tolerances(atoms, 0.05, None)
 
     return atoms

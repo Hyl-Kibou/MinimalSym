@@ -236,3 +236,113 @@ def _gcd(A, B):
     else:
         r = a % b
         return _gcd(b, r)
+
+@njit
+def unique_sorted(arr):
+    """
+    Return the sorted unique elements of a 1D array.
+
+    Parameters
+    ----------
+    arr : np.ndarray
+        Input 1D array of comparable elements.
+
+    Returns
+    -------
+    np.ndarray
+        Sorted array containing the unique elements of `arr`.
+
+    Notes
+    -----
+    This is a Numba-compatible alternative to `np.unique`, implemented
+    using sorting followed by linear duplicate removal.
+
+    Equality is tested using exact comparison (`!=`), so this function
+    is best suited for integer or discretized floating-point data.
+    """
+    if len(arr) == 0:
+        return arr
+
+    sorted_arr = np.sort(arr)
+
+    # allocate output (max possible size)
+    out = np.empty_like(sorted_arr)
+    count = 0
+
+    out[count] = sorted_arr[0]
+    count += 1
+
+    for i in range(1, len(sorted_arr)):
+        if sorted_arr[i] != out[count-1]:
+            out[count] = sorted_arr[i]
+            count += 1
+
+    return out[:count]
+
+@njit
+def canonical(v):
+    """
+    Returns canonical form of vector.
+    Ensures that the first non-zero element is positive.
+
+    Parameters
+    ----------
+    v : np.ndarray, shape (3,)
+        Vector to canonicalize
+
+    Returns
+    -------
+    np.ndarray, shape (3,)
+        Canonical vector
+    """
+    v = normalize(v)
+    for i in range(len(v)):
+        if abs(v[i]) < 1e-08:
+            continue
+        if v[i] < 0:
+            v = -v
+        break
+    return v
+
+@njit
+def generate_cyclic_axes(static_axis:np.array, saxis:np.array, n:int, num_elem_generate:int = -1):
+    """
+    Generate a set of axes by rotating a reference axis around a fixed axis.
+
+    Parameters
+    ----------
+    static_axis : np.ndarray, shape (3,)
+        Unit vector defining the rotation axis (e.g., principal symmetry axis).
+    saxis : np.ndarray, shape (3,)
+        Reference axis to be rotated about `static_axis`.
+    n : int
+        Order of the rotation symmetry (Cn). Defines the angular step 2π/n.
+        If `n` is even, it is internally doubled to ensure full coverage of
+        distinct orientations.
+    num_elem_generate : int, optional
+        Number of rotated axes to generate. If <= 0, defaults to `n`.
+
+    Returns
+    -------
+    np.ndarray, shape (num_elem_generate, 3)
+        Array of rotated axes. The first row is `saxis`, and subsequent rows
+        are obtained by successive rotations about `static_axis`.
+
+    Notes
+    -----
+    This function is typically used to generate symmetry-equivalent axes
+    (e.g., C2 axes perpendicular to a principal axis in dihedral groups).
+    """
+    if num_elem_generate <= 0:
+        num_elem_generate = n
+    if n % 2 == 0:
+        n *= 2
+    rotated_axes = np.empty((num_elem_generate, 3), dtype=np.float64)
+    rotated_axes[0, :] = saxis
+
+    for ii in range(1, num_elem_generate):
+        theta = 2 * np.pi * ii / n
+        R = rotation_matrix(static_axis, theta)
+        rotated_axes[ii, :] = R @ saxis
+
+    return rotated_axes

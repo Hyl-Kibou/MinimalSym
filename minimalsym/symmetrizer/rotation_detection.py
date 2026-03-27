@@ -26,6 +26,9 @@ class RotationElement():
     def __eq__(self, other):
         if isinstance(other, RotationElement):
             return issame_axis(self.axis, other.axis) and self.order == other.order
+        
+    def __repr__(self) -> str:
+        return f"Axis: {self.axis} Order: {self.order}"
 
 
 # ── Rotation-set intersection ─────────────────────────────────────────────────
@@ -34,13 +37,15 @@ class RotationElement():
 def _jit_intersect(a_axis, a_rots, b_axis, b_rots):
     a_size = len(a_axis)
     indexes = np.zeros(a_size, dtype=np.bool_)
+    a_to_b = np.zeros(a_size, dtype=np.int64)
     b_size = len(b_axis)
     for ii in range(a_size):
         for jj in range(b_size):
             if issame_axis(a_axis[ii], b_axis[jj]) and a_rots[ii] == b_rots[jj]:
                 indexes[ii] = True
+                a_to_b[ii] = jj
                 break
-    return indexes
+    return indexes, a_to_b
 
 
 def _intersect(a, b):
@@ -53,15 +58,18 @@ def _intersect(a, b):
     b_axis = np.asarray([elem.axis for elem in b], dtype=np.float64)
     a_rots = np.asarray([elem.order for elem in a], dtype=np.int64)
     b_rots = np.asarray([elem.order for elem in b], dtype=np.int64)
-    indexes = _jit_intersect(a_axis, a_rots, b_axis, b_rots)
-    return [elem for ii, elem in enumerate(a) if indexes[ii]]
-
+    indexes, a_to_b = _jit_intersect(a_axis, a_rots, b_axis, b_rots)
+    intersection = []
+    for ii, elem in enumerate(a):
+        if indexes[ii]:
+            intersection.append(RotationElement(normalize(elem.axis + b[a_to_b[ii]].axis), elem.order))
+    return intersection
 
 def _rotation_set_intersection(rotation_set):
     """Return the intersection of all per-SEA rotation sets."""
     out = rotation_set[0]
     if len(rotation_set) > 1:
-        for i in range(len(rotation_set)):
+        for i in range(1, len(rotation_set)):
             out = _intersect(out, rotation_set[i])
             if len(out) == 0:
                 break
@@ -162,8 +170,9 @@ def _find_rotations(mol, rotation_set):
     evals = np.sort(np.linalg.eigh(molmoit)[0])
     if evals[0] == 0.0 and inertia_isclose(evals[1], evals[2], atol=mol_tol, rtol=eigen_tol):
         for i in range(np.shape(positions)[0]):
-            if normalize(positions[i, :]) is not None:
-                axis = normalize(positions[0, :])
+            if normalize(positions[i, :]) is not None and not np.allclose(positions[i, :], np.zeros(3)):
+                axis = normalize(positions[i, :])
+                break
         re = RotationElement(axis, 0)
         return [re]
     rsi = _rotation_set_intersection(rotation_set)
