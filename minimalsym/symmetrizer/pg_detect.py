@@ -156,7 +156,7 @@ def _classify_subfamily(mol, seas, positions, masses, mol_tol, paxis, Cn_order):
     Determine the point-group subfamily (h/v/d/S2n/pure) once paxis and
     Cn_order are known. Returns the full Schoenflies symbol and updated saxis.
     """
-    saxis = [0, 0, 0]
+    saxis = np.zeros(3)
     ortho_c2_chk, c2_ortho = _is_there_ortho_c2(mol, seas, paxis)
     sigmav_chk, sigmav = _is_there_sigmav(mol, seas, paxis)
     sigmah_chk = _is_there_sigmah(mol, paxis)

@@ -117,7 +117,7 @@ def vec_norm(v):
 @njit
 def normalize(a):
     """
-    Normalize vector a to unit length, return None if the input vector is of zero length.
+    Normalize vector a to unit length, return zero vector shape(n, ) if the input vector is of zero length.
 
     Parameters
     ----------
@@ -126,8 +126,8 @@ def normalize(a):
 
     Returns
     -------
-    np.array or None
-        Normalized vector shape(n,) or None if the magnitude of ``a`` is less than the global tolerance.
+    np.array
+        Normalized vector shape(n,) or zero vector shape(n, ) if the magnitude of ``a`` is less than the global tolerance.
     """
     n = vec_norm(a)
     if n <= global_tol:

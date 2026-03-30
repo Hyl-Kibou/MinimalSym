@@ -7,14 +7,14 @@ and numba JIT. They are used by cyclic_dihedral.py and symel_gen.py.
 
 import numpy as np
 from numba import njit
-
+from .sym_ops import _gcd
 
 @njit
 def _omega(m, n):
     """Reduce the power m of an S_n element to its canonical symbol index and axis order."""
-    gcd_val = np.gcd(m, n)
-    l = (m / gcd_val) + (n / gcd_val) * (1 - ((m / gcd_val) % 2))
-    return int(l), int(n / gcd_val)
+    gcd_val = _gcd(m, n)
+    l = (m // gcd_val) + (n // gcd_val) * (1 - ((m // gcd_val) % 2))
+    return int(l), int(n // gcd_val)
 
 
 @njit

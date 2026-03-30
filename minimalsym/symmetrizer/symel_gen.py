@@ -22,8 +22,6 @@ from .cubic_icosahedral import (
     I_SYMELS, IH_SYMELS,
 )
 
-np.set_printoptions(precision=3, threshold=np.inf, linewidth=14000, suppress=True)
-
 
 def pg_to_symels(PG):
     """

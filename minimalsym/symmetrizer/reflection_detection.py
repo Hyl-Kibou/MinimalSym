@@ -9,6 +9,7 @@ import numpy as np
 
 from .sym_ops import reflection_matrix, normalize, issame_axis
 from .mol_ops import transform_isequivalent, transform
+from .mol_orient import rotate_mol_to_symels
 
 
 # ── Plane detection ───────────────────────────────────────────────────────────
@@ -97,7 +98,6 @@ def mol_is_planar(mol):
     mol_tol = mol.info["geom_tol"]
     rank = np.linalg.matrix_rank(mol.positions, tol=mol_tol)
     if rank < 3:
-        from .mol_orient import rotate_mol_to_symels
         axis = _planar_mol_axis(mol)
         new_mol, _, _ = rotate_mol_to_symels(mol, axis, np.array([0, 0, 0]))
         matrix = np.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, -1.0]])

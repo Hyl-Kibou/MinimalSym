@@ -17,12 +17,10 @@ from typing import TYPE_CHECKING
 
 from .symmetrizer.pg_detect import find_point_group, mol_is_planar
 from .symmetrizer.symtext import Symtext
-from .symmetrizer.mol_ops import find_SEAs
+from .symmetrizer.mol_ops import find_SEAs, _jit_calcmoit
 from .symmetrizer.constants import SYMMETRIZED_TOL
 
-if TYPE_CHECKING:
-    from ase import Atoms
-
+from ase import Atoms
 
 # ── Input validation ───────────────────────────────────────────────────────────
 
@@ -58,7 +56,10 @@ def _validate_mol(mol, tol, min_atoms=1):
             f"Molecule must have at least {min_atoms} atom(s), got {len(mol)}."
         )
 
-def _set_tolerances(mol, geom_tol, eigen_tol):
+def _set_tolerances(mol: Atoms, geom_tol:float, eigen_tol:float|None = None):
+    """
+    TODO
+    """
     mol.info["geom_tol"] = geom_tol
     if eigen_tol is None:
         mol.info["eigen_tol"] = _estimate_eigen_tol(
@@ -70,15 +71,24 @@ def _set_tolerances(mol, geom_tol, eigen_tol):
 # ── Estimate a value for eigen tolerance ───────────────────────────────────────
 
 def _estimate_eigen_tol(positions, masses, mol_tol, factor=2.0):
+    """
+    TODO
+    """
+    moit = _jit_calcmoit(positions, masses)
+    evals_mol, _ = np.linalg.eigh(moit)
+    scale = np.max(evals_mol)
+    eigen_tol = factor * mol_tol / np.sqrt(scale / np.sum(masses))
+    return eigen_tol
+
     R2 = np.average(np.sum(positions**2, axis=1), weights=masses)
     R = np.sqrt(R2)
-    if R == 0:
-        return 1.0  # fallback for degenerate case
+    if R < 1e-12: # fallback for degenerate case
+        return factor * mol_tol
     return factor * mol_tol / R
 
 # ── Point group & planarity ────────────────────────────────────────────────────
 
-def get_point_group(mol: "Atoms", geom_tol: float = 0.05, eigen_tol: float|None = None) -> str:
+def get_point_group(mol: Atoms, geom_tol: float = 0.05, eigen_tol: float|None = None) -> str:
     """
     Determine the point group of a molecule.
 
@@ -103,6 +113,7 @@ def get_point_group(mol: "Atoms", geom_tol: float = 0.05, eigen_tol: float|None 
     """
     _validate_mol(mol, geom_tol, min_atoms=1)
     mol = mol.copy()
+    mol.translate(-mol.get_center_of_mass())
     _set_tolerances(mol, geom_tol, eigen_tol)
     try:
         result = find_point_group(mol)
@@ -114,7 +125,7 @@ def get_point_group(mol: "Atoms", geom_tol: float = 0.05, eigen_tol: float|None 
     return result.pg
 
 
-def is_planar(mol: "Atoms", geom_tol: float = 0.05) -> bool:
+def is_planar(mol: Atoms, geom_tol: float = 0.05) -> bool:
     """
     Check whether all atoms of a molecule lie in a common plane.
 
@@ -135,6 +146,8 @@ def is_planar(mol: "Atoms", geom_tol: float = 0.05) -> bool:
     """
     _validate_mol(mol, geom_tol, min_atoms=3)
     mol = mol.copy()
+    mol.translate(-mol.get_center_of_mass())
+
     mol.info["geom_tol"] = geom_tol
     return mol_is_planar(mol)
 
@@ -188,7 +201,7 @@ def _union_find_pass(atom_map, parent, symel_indices):
             parent[idx] = owner
 
 
-def get_inequivalent(mol_in: "Atoms", geom_tol: float = 0.3, eigen_tol: float|None = None) -> tuple:
+def get_inequivalent(mol_in: Atoms, geom_tol: float = 0.3, eigen_tol: float|None = None) -> tuple:
     """
     Find symmetry-inequivalent atoms using all symmetry operations.
 
@@ -216,6 +229,7 @@ def get_inequivalent(mol_in: "Atoms", geom_tol: float = 0.3, eigen_tol: float|No
     """
     _validate_mol(mol_in, geom_tol, min_atoms=1)
     mol_in = mol_in.copy()
+    mol_in.translate(-mol_in.get_center_of_mass())
     _set_tolerances(mol_in, geom_tol, eigen_tol)
 
     try:
@@ -255,11 +269,6 @@ def _project_linear(mol, sea, asym_symtext):
     sea : SEA
         Symmetry-equivalent-atoms group to process.
     asym_symtext : Symtext
-
-    Returns
-    -------
-    bool
-        True if this is C0v (caller should break after the first SEA).
     """
     z = np.array([0.0, 0.0, 1.0])
     atom_i = sea.subset[0]
@@ -268,7 +277,7 @@ def _project_linear(mol, sea, asym_symtext):
         # C0v: all atoms lie on z; zero out x and y.
         for atom_j in sea.subset:
             mol.positions[atom_j, :] = np.array([0.0, 0.0, np.dot(mol.positions[atom_j, :], z)])
-        return True  # signal to break — single SEA covers the whole molecule
+        return
 
     # Maybe should ask elif asym_symtext.pg.family == "D":
     # D0h: atoms come in inversion-related pairs.
@@ -282,8 +291,6 @@ def _project_linear(mol, sea, asym_symtext):
         if atom_j == asym_symtext.atom_map[atom_i, 1]:
             # Inversion partner of atom_i: negate its axial position.
             mol.positions[atom_j, :] = np.dot(-np.eye(3), mol.positions[atom_i, :])
-
-    return False
 
 
 def _project_atom(mol, atom_i, asym_symtext):
@@ -351,7 +358,7 @@ def _map_sea_from_representative(mol, sea, atom_i, asym_symtext):
                 )
                 break
 
-def symmetrize(mol_in: "Atoms", geom_tol: float = 0.05, eigen_tol: float|None = None) -> "Atoms":
+def symmetrize(mol_in: Atoms, geom_tol: float = 0.05, eigen_tol: float|None = None) -> Atoms:
     """
     Symmetrize the geometry of a molecule to exact point-group symmetry.
 
@@ -403,6 +410,7 @@ def symmetrize(mol_in: "Atoms", geom_tol: float = 0.05, eigen_tol: float|None = 
     """
     mol_in = mol_in.copy()
 
+    mol_in.translate(-mol_in.get_center_of_mass())
     _set_tolerances(mol_in, geom_tol, eigen_tol)
 
     seas = find_SEAs(mol_in)
@@ -420,9 +428,7 @@ def symmetrize(mol_in: "Atoms", geom_tol: float = 0.05, eigen_tol: float|None = 
         atom_i = sea.subset[0]
 
         if asym_symtext.pg.is_linear:
-            done = _project_linear(mol, sea, asym_symtext)
-            if done:
-                break
+            _project_linear(mol, sea, asym_symtext)
             continue
 
         _project_atom(mol, atom_i, asym_symtext)

@@ -44,4 +44,12 @@ def test_overestimate_D_family():
         mol = read(path)
         smol = minimalsym.symmetrize(mol)
 
+# C0v molecules weren't properly symmetrized, they should have two rows of 0.
+def test_c0v():
+    file_path = os.path.join(PATH, "new_xyz", f"error.xyz")
+    listmol = read(file_path, index=':')
+    smol = minimalsym.symmetrize(listmol[0])
 
+    assert smol.info["pg"]=="C0v", f"Wrong point group, got: {smol.info["pg"]} expected: C0v"
+    for ii in range(len(smol.positions)):
+        assert np.allclose(smol.positions[ii][:2], np.zeros(2), atol=0., rtol=0.), f"Positions not aligned with z-axis, got: {smol.positions}{smol.positions[ii][:2]} expected: {np.zeros(2)}"

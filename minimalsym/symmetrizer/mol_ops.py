@@ -1,6 +1,7 @@
 import numpy as np
 from dataclasses import dataclass
 from numba import njit
+from .sym_ops import unique_sorted
 
 
 @dataclass
@@ -25,7 +26,7 @@ class SEA():
     def __eq__(self, other):
         if len(self.subset) != len(other.subset):
             return False
-        return self.label == self.label and (self.subset == other.subset).all() and (self.axis == other.axis).all()
+        return self.label == other.label and (self.subset == other.subset).all() and (self.axis == other.axis).all()
 
 @njit
 def transform(positions: "np.array", M: "np.array") -> "np.array":
@@ -132,6 +133,48 @@ def find_SEAs(mol):
     for k in range(n_seas):
         subset = np.where(sea_id == k)[0].astype(np.int64)
         SEAs.append(SEA("", subset, np.zeros(3)))
+    return SEAs
+
+@njit
+def _jit_get_SEAs_from_atom_map(atom_map):
+    subset_list = []
+
+    for subset in atom_map:
+        ordered_subset = unique_sorted(subset)
+
+        found = False
+        for j in range(len(subset_list)):
+            if np.array_equal(ordered_subset, subset_list[j]):
+                found = True
+                break
+
+        if not found:
+            subset_list.append(ordered_subset)
+
+    return subset_list
+
+
+def get_SEAs_from_atom_map(atom_map):
+    """
+    Find sets of symmetry equivalent atoms based on a Symtext.atom_map.
+    Form symmetry equivalent sets from who each atom maps to.
+
+    Parameters
+    ----------
+    atom_map: np.array
+        Symtext.atom_map
+
+    Returns
+    -------
+    List[SEA]
+        List of symmetry equivalent atom sets
+    """
+    SEAs = []
+    subset_list = _jit_get_SEAs_from_atom_map(atom_map)
+
+    for subset in subset_list:
+        SEAs.append(SEA("", subset, np.zeros(3)))
+
     return SEAs
 
 @njit

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "MinimalSym"
-version = "0.7.1"
+version = "0.7.2"
 authors = [
     { name = "Sebastian Hernández", email = "s3b4s7i4nhg@gmail.com" }
 ]
@@ -18,6 +18,7 @@ classifiers = [
     ]
 requires-python = ">=3.9"
 dependencies = [
+    "ase",
     "numpy >= 1.23.4",
     "numba >= 0.58.0"
     ]
@@ -29,7 +30,6 @@ docs = [
   "mkdocstrings[python]"
 ]
 dev = [
-    "ase",
     "build",
     "pytest"
 ]
