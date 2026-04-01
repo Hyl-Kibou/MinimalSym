@@ -3,22 +3,28 @@ minimalsym.py — Public API for molecular symmetry analysis.
 
 Public functions
 ----------------
-  get_point_group(mol, geom_tol)  -> str
+  get_point_group(mol, geom_tol, eigen_tol)  -> str
 
-  is_planar(mol, tol)             -> bool
+  is_planar(mol, geom_tol)             -> bool
 
-  get_inequivalent(mol, geom_tol) -> (unique, parent)
+  get_inequivalent(mol, geom_tol, eigen_tol) -> (unique, parent)
 
-  symmetrize(mol_in, geom_tol)    -> ase.Atoms
+  symmetrize(mol_in, geom_tol, eigen_tol)    -> ase.Atoms
+
+  generate_symmetry_candidates(mol_in, geom_tol, eigen_tol)    -> List[SymmetryResult]
 """
 
 import numpy as np
-from typing import TYPE_CHECKING
+from dataclasses import dataclass
 
 from .symmetrizer.pg_detect import find_point_group, mol_is_planar
 from .symmetrizer.symtext import Symtext
 from .symmetrizer.mol_ops import find_SEAs, _jit_calcmoit
 from .symmetrizer.constants import SYMMETRIZED_TOL
+
+from .symmetrizer.mol_ops import get_SEAs_from_atom_map
+from .symmetrizer.pg_decompose import _decompose_point_group, _find_pg_score, _unique_point_group, _check_O_point_group, _check_general_point_group
+from .symmetrizer.mol_ops import transform
 
 from ase import Atoms
 
@@ -436,3 +442,182 @@ def symmetrize(mol_in: Atoms, geom_tol: float = 0.05, eigen_tol: float|None = No
 
     mol.info["geom_tol"] = SYMMETRIZED_TOL
     return mol
+
+# ── Get fan-out of possible symmetries ─────────────────────────────────────
+
+def _get_error(a_pos: np.array, b_pos: np.array) -> float:
+    """
+    Returns RMSD of two positions np.arrays.
+
+    Parameters
+    ----------
+    a_pos : np.array
+        Positions of molecule A to get RMSD.
+    b_pos : np.array
+        Positions of molecule B to get RMSD.
+
+    Returns
+    -------
+    float
+        RMSD of the two positions.
+    """
+    difference = a_pos-b_pos
+    return np.sqrt((difference**2).sum() / len(a_pos))
+
+@dataclass
+class SymmetryResult:
+    """
+    Container for a found symmetry result.
+
+    Attributes
+    ----------
+    mol : ase.Atoms
+        Symmetrized molecule.
+    pg : str
+        Schoenflies symbol of the point group.
+    rmsd : float
+        RMSD between the original and symmetrized structure.
+    """
+    mol: Atoms
+    pg: str
+    rmsd: float
+
+def generate_symmetry_candidates(mol_in: Atoms, geom_tol: float = 0.05, eigen_tol: float|None = None, sort_by:int = 0) -> list[SymmetryResult]:
+    """
+    Generate symmetry-consistent geometries alternatives compatible with a detected point group.
+
+    Algorithm overview
+    ------------------
+    1. Build a Symtext at tolerance *geom_tol* to detect the approximate
+       point group of the input structure.
+    2. Decompose the detected point group into all compatible subgroups.
+    3. For each candidate point group:
+
+        a. Construct a Symtext object consistent with that subgroup.
+
+        b. For each set of symmetry-equivalent atoms (SEA):
+
+            - **Linear molecules** (C∞v / D∞h approximations): project atoms
+            onto the molecular axis.
+
+            - **Non-linear molecules**:
+                - Project a representative atom onto the appropriate symmetry
+                element (axis, plane, inversion center, etc.).
+                - Map the remaining SEA atoms from the representative using
+                the stored symmetry operations.
+
+        c. Compute the RMSD between the original (aligned) geometry and the
+          symmetrized structure.
+
+    4. Return all generated symmetrized molecules along with their point
+       groups and RMSD values, sorted according to `sort_by` parameter.
+
+    Parameters
+    ----------
+    mol_in : ase.Atoms
+        Molecule to analyze and symmetrize into multiple candidate symmetries.
+    geom_tol : float, optional
+        Tolerance for detecting the initial (possibly distorted) point group.
+        Default is 0.05 Å.
+    eigen_tol : float, optional
+        Relative tolerance for eigenvalues (default None,
+        an internal routine determines an appropriate value).
+    sort_by : int, optional
+        Controls sorting of the returned list:
+        0 := sort by point group "size" (descending number of symmetry operations),
+             then by RMSD (ascending).
+        1 := sort by RMSD (ascending), then by point group "size" (descending).
+
+    Returns
+    -------
+    list[SymmetryResult]
+        Symmetrized candidates with their point group and RMSD.
+        - mol : ase.Atoms
+            Symmetrized molecule for a candidate point group.
+        - pg : str
+            Schoenflies symbol of the point group.
+        - rmsd : float
+            RMSD between the original (aligned) and symmetrized geometry.
+
+    Raises
+    ------
+    RuntimeError
+        If Symtext construction fails for the initial molecule or any
+        candidate point group.
+    Exception
+        Propagates unexpected exceptions encountered during projection
+        or mapping.
+    """
+    mol_in = mol_in.copy()
+
+    mol_in.translate(-mol_in.get_center_of_mass())
+    _set_tolerances(mol_in, geom_tol, eigen_tol)
+
+    try:
+        asym_symtext = Symtext.from_molecule(mol_in)
+    except Exception as exc:
+        raise RuntimeError(
+            f"Symtext construction failed during symmetrize: {exc}"
+        ) from exc
+
+    mol = asym_symtext.mol
+
+    if asym_symtext.pg.is_linear:
+        pass
+        mol.info['geom_tol'] *= 2
+
+    repeated_pgr = _decompose_point_group(asym_symtext.pg)
+
+    if asym_symtext.pg.family == 'I':
+        invertable = asym_symtext.pg.subfamily is not None
+        extension_pgr = _check_O_point_group(mol, invertable)
+        repeated_pgr.extend(extension_pgr)
+
+    if asym_symtext.pg.family == 'I' or asym_symtext.pg.family == 'O' or asym_symtext.pg.family == 'T':
+        extension_pgr = _check_general_point_group(mol)
+        repeated_pgr.extend(extension_pgr)
+
+    possible_pgr = _unique_point_group(repeated_pgr)
+
+    sym_listmol = []
+
+    for curr_pgr in possible_pgr:
+        try:
+            curr_asym_symtext = Symtext.from_point_group_result(mol, curr_pgr, asym_symtext.pg.is_linear)
+        except Exception as exc:
+            raise RuntimeError(
+                f"Symtext construction failed during case {curr_pgr}: {exc}"
+            ) from exc
+
+        curr_mol = curr_asym_symtext.mol
+
+        curr_SEAs = get_SEAs_from_atom_map(curr_asym_symtext.atom_map)
+
+        for sea in curr_SEAs:
+            atom_i = sea.subset[0]
+
+            if curr_asym_symtext.pg.is_linear:
+                _project_linear(curr_mol, sea, curr_asym_symtext)
+                continue
+
+            _project_atom(curr_mol, atom_i, curr_asym_symtext)
+            _map_sea_from_representative(curr_mol, sea, atom_i, curr_asym_symtext)
+
+        rmsd = _get_error(transform(mol.positions, curr_asym_symtext.rotate_to_std), curr_mol.positions)
+
+        sym_listmol.append(SymmetryResult(
+            mol=curr_mol,
+            pg=curr_pgr.pg,
+            rmsd=rmsd,
+        ))
+
+    if sort_by == 0:
+        sym_listmol.sort(
+            key=lambda x: (- _find_pg_score(x.pg), x.rmsd)
+        )
+    else:
+        sym_listmol.sort(
+            key=lambda x: (x.rmsd, - _find_pg_score(x.pg))
+        )
+
+    return sym_listmol

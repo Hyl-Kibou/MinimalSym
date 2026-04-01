@@ -202,16 +202,19 @@ def _jit_find_C4s_for_Oh(size, positions, masses, mol_tol):
                         if not (c4_axis == np.zeros(3)).all():
                             c4_axes.append(c4_axis)
 
-    unique_axes = [c4_axes[0]]
-    for i in c4_axes:
-        check = True
-        for j in unique_axes:
-            if issame_axis(i, j):
-                check = False
-                break
-        if check:
-            unique_axes.append(i)
-    chk = len(unique_axes)
+    if len(c4_axes) >= 1:
+        unique_axes = [c4_axes[0]]
+        for i in c4_axes:
+            check = True
+            for j in unique_axes:
+                if issame_axis(i, j):
+                    check = False
+                    break
+            if check:
+                unique_axes.append(i)
+        chk = len(unique_axes)
+    else:
+        chk = 0
     if chk != 3:
         print("DEBUG: c4 axes count", chk)
         raise RuntimeError(

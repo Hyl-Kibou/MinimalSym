@@ -74,13 +74,32 @@ def _classify_spherical_top(mol, positions, masses, mol_tol):
     seas = find_SEAs(mol)
     num_C2 = _num_C2(mol, seas)
     if num_C2 is None:
-        warnings.warn("Molecule was wrongly classified as a spherical top, probably due to high eigen_tol. " \
+        warnings.warn("Molecule was wrongly classified as a spherical top, (num_C2 is None), probably due to high eigen_tol. " \
             "Process will continue as general symmetry.")
         return _classify_general(mol, positions, masses, mol_tol)
     n, axes = num_C2
     invertable = transform_isequivalent(positions, masses, mol_tol, inversion_matrix())
 
-    if n == 15:
+    if n >= 16:
+        # Icosahedral: paxis = C5 axis, saxis = C2 axis from golden-ratio geometry.
+        try:
+            c2_axis = axes[0]
+            c3s = _find_C3s_for_Ih(mol)
+            saxis = np.zeros(3)
+            for c3 in c3s:
+                if np.isclose(np.arccos(abs(np.dot(c3, c2_axis))), IH_C2_C3_ANGLE, atol=IH_ANGLE_TOL):
+                    taxis = normalize(np.cross(c3, c2_axis))
+                    saxis = normalize(np.cross(taxis, c2_axis))
+                    break
+            phi = (1 + np.sqrt(5.0)) / 2
+            theta = np.arccos(phi / np.sqrt(1 + phi**2))
+            paxis = np.dot(rotation_matrix(saxis, theta), c2_axis)
+            pg = "Ih" if invertable else "I"
+        except:
+            warnings.warn(f"Molecule was wrongly classified as a spherical top, (n is {n}), probably due to high eigen_tol or geom_tol. " \
+                "Process will continue as general symmetry.")
+            return _classify_general(mol, positions, masses, mol_tol)
+    elif n == 15:
         # Icosahedral: paxis = C5 axis, saxis = C2 axis from golden-ratio geometry.
         c2_axis = axes[0]
         c3s = _find_C3s_for_Ih(mol)
@@ -121,7 +140,7 @@ def _classify_spherical_top(mol, positions, masses, mol_tol):
         else:
             pg = "T"
     else:
-        warnings.warn("Molecule was wrongly classified as a spherical top, probably due to high eigen_tol. " \
+        warnings.warn(f"Molecule was wrongly classified as a spherical top, (n is {n}), probably due to high eigen_tol or geom_tol. " \
             "Process will continue as general symmetry.")
         return _classify_general(mol, positions, masses, mol_tol)
 

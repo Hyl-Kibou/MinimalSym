@@ -1,1 +1,1 @@
-from .minimalsym import symmetrize, get_point_group, get_inequivalent, is_planar
+from .minimalsym import symmetrize, get_point_group, get_inequivalent, is_planar, generate_symmetry_candidates
