@@ -1,8 +1,15 @@
 # High-level functions
 
-::: minimalsym.minimalsym
+For a deeper understanding of how the algorithms work internally,
+see the [Algorithm Flowcharts](../flowchart.md).
+
+---
+
+::: minimalsym.api
     options:
-      show_source: true
+      filters:
+      - public
+      - "!^_"
 
 <!--
 ## Symmetrize operation

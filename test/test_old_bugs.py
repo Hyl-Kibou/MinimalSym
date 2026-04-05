@@ -13,7 +13,7 @@ PATH = os.path.dirname(os.path.realpath(__file__))
 def test_formaldehyde():
     file_path = os.path.join(PATH, "xyz", f"formaldehyde.xyz")
     mol = read_file(file_path)
-    pg_obj = minimalsym.symmetrizer.find_point_group(mol)
+    pg_obj = minimalsym.core.pg_detect.find_point_group(mol)
     pg = pg_obj.pg
     paxis = pg_obj.paxis
     saxis = pg_obj.saxis

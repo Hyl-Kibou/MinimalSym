@@ -5,14 +5,15 @@ MinimalSym is tested with **Python 3.12–3.13**, but should also work with **Py
 ## Requirements
 
 - Python ≥ 3.9
+- ASE
 - NumPy
 - Numba
 
-> **Optional:** To create and manipulate molecules as `Atoms` objects, install [ASE](https://wiki.fysik.dtu.dk/ase/):
-> 
-> ```bash
-> pip install ase
-> ```
+To create and manipulate molecules as `Atoms` objects, install [ASE](https://wiki.fysik.dtu.dk/ase/):
+
+```bash
+pip install ase
+```
 
 ---
 

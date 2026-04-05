@@ -8,18 +8,20 @@ from .mol_ops import transform
 
 def _print_to_vector(axes:np.array, shine:float=0.2, factor:float=1.0) -> None:
     """
-    !!! DEBUGGING FUNCTION
+    Internal debugging utility: print vectors in a visualization-friendly format.
 
-    Prints vectors in format.
+    This helper outputs vectors as formatted lines (prefixed with "V" and "S")
+    intended for use with external visualization tools or custom viewers.
+    It is primarily used to inspect symmetry axes during development.
 
     Parameters
     ----------
-    axes : np.array
-        Vectors to print.
-    shine : float
-        Controls value of shine in vector.
-    factor : float
-        Scales vector size.
+    axes : np.ndarray
+        Array of vectors to print (shape: (N, 3) or (3,)).
+    shine : float, optional
+        Visual intensity parameter included in the output format.
+    factor : float, optional
+        Scaling factor applied to vector length in the output.
 
     Returns
     -------
@@ -28,7 +30,7 @@ def _print_to_vector(axes:np.array, shine:float=0.2, factor:float=1.0) -> None:
     np.set_printoptions(precision=6)
 
     axes = np.asarray(axes)
-    # If single vector → wrap it
+    # If single vector -> wrap it
     if axes.ndim == 1:
         axes = axes.reshape(1, 3)
 
@@ -48,8 +50,43 @@ def _print_to_vector(axes:np.array, shine:float=0.2, factor:float=1.0) -> None:
 
 def _decompose_cyclic(family:str, n:int, subfamily:str, paxis:np.array, saxis:np.array, taxis:np.array) -> list[PointGroupResult]:
     """
-    Decomposes cyclic point groups into internal point groups.
-    TODO
+    Decompose cyclic and dihedral point groups into symmetry-consistent subgroups.
+
+    This function generates a set of candidate point groups derived from a
+    cyclic (Cₙ/Sₙ) or dihedral (Dₙ) parent group, including all compatible
+    subgroups and orientations that preserve the underlying symmetry axes.
+
+    Parameters
+    ----------
+    family : str
+        Point-group family ("C" or "D").
+    n : int
+        Order of the principal rotation axis. Special case n = 0 corresponds
+        to linear groups (C∞v / D∞h).
+    subfamily : str or None
+        Subfamily label ("v", "h", "d", or None).
+    paxis : ndarray, shape (3,)
+        Principal symmetry axis.
+    saxis : ndarray, shape (3,)
+        Secondary axis defining the canonical orientation.
+    taxis : ndarray, shape (3,)
+        Tertiary axis orthogonal to paxis and saxis.
+
+    Returns
+    -------
+    : list[PointGroupResult]
+        List of candidate point groups with associated orientations.
+
+    Notes
+    -----
+    - Includes:
+        * Parent group (e.g., Cₙ, Dₙ)
+        * Subgroups (Cₖ, Dₖ where k | n)
+        * Mirror and improper groups (Cs, Ci, Sₙ)
+        * All symmetry-equivalent orientations of axes
+    - For dihedral groups, additional recursive decomposition is performed
+      through cyclic subgroups (e.g., Cₙᵥ, Cₙₕ).
+    - Linear groups (n = 0) are approximated using high-order finite groups.
     """
     pg_list = []
     zeros = np.zeros(3)
@@ -159,8 +196,37 @@ def _decompose_cyclic(family:str, n:int, subfamily:str, paxis:np.array, saxis:np
 
 def _decompose_T_family(subfamily:str, paxis:np.array, saxis:np.array, taxis:np.array) -> list[PointGroupResult]:
     """
-    Decomposes T family point group into internal point groups.
-    TODO
+    Decompose tetrahedral point groups into symmetry-consistent subgroups.
+
+    Generates all subgroup candidates of the T family (T, T_d, T_h),
+    including cyclic, dihedral, and improper subgroups derived from
+    tetrahedral symmetry elements.
+
+    Parameters
+    ----------
+    subfamily : str or None
+        Subfamily label ("d", "h", or None).
+    paxis, saxis, taxis : ndarray, shape (3,)
+        Orthogonal axes defining the tetrahedral orientation.
+
+    Returns
+    -------
+    list[PointGroupResult]
+        List of candidate point groups with associated orientations.
+
+    Notes
+    -----
+    - Includes:
+        * C₂ axes (3)
+        * C₃ axes (4, along tetrahedral corners)
+        * Derived subgroups (D₂)
+    - For T_d:
+        * Adds S₄ axes (3) and σ_d planes (6)
+        * Includes C₃ᵥ subgroups
+    - For T_h:
+        * Adds inversion (Ci), σ_h planes (3), and S₆ axes (4)
+        * Includes D₂h subgroups
+    - Recursive decomposition is applied to composite subgroups.
     """
     # Tetrahedral (n == 3): use two of the three C2 axes.
 
@@ -231,7 +297,7 @@ def _decompose_T_family(subfamily:str, paxis:np.array, saxis:np.array, taxis:np.
         pg_list.append(PointGroupResult("Cs", paxis, saxis))
         pg_list.append(PointGroupResult("Cs", paxis, taxis))
         pg_list.append(PointGroupResult("Cs", saxis, taxis))
-        # 4S6 PREMPTIVELY (same as C3 axes)?
+        # 4 S6 (same as C3 axes)
         for corner in tetra_corners:
             pg_list.append(PointGroupResult("S6", corner, zeros))
         # Combinations
@@ -245,8 +311,33 @@ def _decompose_T_family(subfamily:str, paxis:np.array, saxis:np.array, taxis:np.
 
 def _decompose_O_family(subfamily:str, paxis:np.array, saxis:np.array, taxis:np.array) -> list[PointGroupResult]:
     """
-    Decomposes O family point groups into internal point groups.
-    TODO
+    Decompose octahedral point groups into symmetry-consistent subgroups.
+
+    Generates subgroup candidates of the O family (O, O_h), including
+    tetrahedral, cyclic, and dihedral subgroups derived from cubic symmetry.
+
+    Parameters
+    ----------
+    subfamily : str or None
+        Subfamily label ("h" for O_h, or None for O).
+    paxis, saxis, taxis : ndarray, shape (3,)
+        Orthogonal C₄ axes defining the cubic orientation.
+
+    Returns
+    -------
+    list[PointGroupResult]
+        List of candidate point groups with associated orientations.
+
+    Notes
+    -----
+    - Includes:
+        * C₄ axes (3), C₃ axes (4, cube diagonals), C₂ axes (6)
+        * Subgroups: D₄, D₃, D₂, T
+    - For O_h:
+        * Adds inversion, mirror planes, and improper rotations (Ci, S₄, S₆)
+        * Subgroups: D₄h, D₃d, D₂h, T, Th, Td
+        * Includes recursive decomposition into D₄h, D₃d, D₂h
+    - Axis orientations are explicitly constructed from cube geometry.
     """
     # Octahedral: paxis and saxis are two orthogonal C4 axes.
 
@@ -367,8 +458,37 @@ def _decompose_O_family(subfamily:str, paxis:np.array, saxis:np.array, taxis:np.
 
 def _decompose_I_family(subfamily:str, paxis:np.array, saxis:np.array, taxis:np.array) -> list[PointGroupResult]:
     """
-    Decomposes I family point groups into internal point groups.
-    TODO
+    Decompose icosahedral point groups into symmetry-consistent subgroups.
+
+    Generates subgroup candidates of the I family (I, I_h), including all
+    cyclic and dihedral subgroups derived from icosahedral symmetry.
+
+    Parameters
+    ----------
+    subfamily : str or None
+        Subfamily label ("h" for I_h, or None for I).
+    paxis : ndarray, shape (3,)
+        Principal C₅ axis.
+    saxis : ndarray, shape (3,)
+        Secondary C₂ axis.
+    taxis : ndarray, shape (3,)
+        Orthogonal axis completing the reference frame.
+
+    Returns
+    -------
+    list[PointGroupResult]
+        List of candidate point groups with associated orientations.
+
+    Notes
+    -----
+    - Includes:
+        * C₅ axes (6), C₃ axes (10), C₂ axes (15)
+        * Subgroups: D₅, D₃, D₂, T
+    - Axes are constructed from icosahedral geometry using the golden ratio.
+    - Subgroup axes are selected by enforcing orthogonality constraints.
+    - For I_h:
+        * Adds inversion, mirror planes, and improper rotations (Ci, S₁₀ (6), S₆ (10))
+        * Includes recursive decomposition into D₂h, D₃d, D₅d
     """
     pg_list = []
     zeros = np.zeros(3)
@@ -678,10 +798,11 @@ def _find_pg_score(pg_str: str) -> int:
     ----------
     pg_str: str
         Schoenflies symbol of a point group.
+
     Returns
     -------
-    int
-        Score of the point group.
+    : int
+        Score.
     """
     pg = PointGroup.from_string(pg_str)
     family = pg.family

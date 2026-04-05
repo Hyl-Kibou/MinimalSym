@@ -91,7 +91,7 @@ def _find_rotation_sets(mol, SEAs):
     -------
     List[List[RotationElement]]
     """
-    mol_tol = mol.info["geom_tol"]
+    geom_tol = mol.info["geom_tol"]
     eigen_tol = mol.info['eigen_tol']
     out_all_SEAs = []
     for sea in SEAs:
@@ -109,12 +109,12 @@ def _find_rotation_sets(mol, SEAs):
             idx = evals.argsort()
             Ia, Ib, Ic = evals[idx]
             Iav, Ibv, Icv = [evecs[:, i] for i in idx]
-            if inertia_isclose(Ia, Ib, atol=mol_tol, rtol=eigen_tol) and inertia_isclose(Ia, Ic, atol=mol_tol, rtol=eigen_tol):
+            if inertia_isclose(Ia, Ib, atol=geom_tol, rtol=eigen_tol) and inertia_isclose(Ia, Ic, atol=geom_tol, rtol=eigen_tol):
                 sea.label = "Spherical"
-            elif inertia_isclose(Ia + Ib, Ic, atol=mol_tol, rtol=eigen_tol):
+            elif inertia_isclose(Ia + Ib, Ic, atol=geom_tol, rtol=eigen_tol):
                 axis = Icv
                 sea.axis = axis
-                if inertia_isclose(Ia, Ib, atol=mol_tol, rtol=eigen_tol):
+                if inertia_isclose(Ia, Ib, atol=geom_tol, rtol=eigen_tol):
                     sea.label = "Regular Polygon"
                     for i in range(2, length + 1):
                         if isfactor(length, i):
@@ -125,12 +125,12 @@ def _find_rotation_sets(mol, SEAs):
                         if isfactor(length, i):
                             out_per_SEA.append(RotationElement(axis, i))
             else:
-                if not (inertia_isclose(Ia, Ib, atol=mol_tol, rtol=eigen_tol) or inertia_isclose(Ib, Ic, atol=mol_tol, rtol=eigen_tol)):
+                if not (inertia_isclose(Ia, Ib, atol=geom_tol, rtol=eigen_tol) or inertia_isclose(Ib, Ic, atol=geom_tol, rtol=eigen_tol)):
                     sea.label = "Asymmetric Rotor"
                     for ax in [Iav, Ibv, Icv]:
                         out_per_SEA.append(RotationElement(ax, 2))
                 else:
-                    if inertia_isclose(Ia, Ib, atol=mol_tol, rtol=eigen_tol):
+                    if inertia_isclose(Ia, Ib, atol=geom_tol, rtol=eigen_tol):
                         sea.label = "Oblate Symmetric Top"
                         axis = Icv
                         sea.axis = Icv
@@ -162,13 +162,13 @@ def _find_rotations(mol, rotation_set):
     """
     positions = mol.positions
     masses = mol.get_masses()
-    mol_tol = mol.info["geom_tol"]
+    geom_tol = mol.info["geom_tol"]
     eigen_tol = mol.info['eigen_tol']
     if len(rotation_set) < 1:
         return []
     molmoit = calcmoit(mol)
     evals = np.sort(np.linalg.eigh(molmoit)[0])
-    if evals[0] == 0.0 and inertia_isclose(evals[1], evals[2], atol=mol_tol, rtol=eigen_tol):
+    if evals[0] == 0.0 and inertia_isclose(evals[1], evals[2], atol=geom_tol, rtol=eigen_tol):
         for i in range(np.shape(positions)[0]):
             if normalize(positions[i, :]) is not None and not np.allclose(positions[i, :], np.zeros(3)):
                 axis = normalize(positions[i, :])
@@ -179,7 +179,7 @@ def _find_rotations(mol, rotation_set):
     out = []
     for i in rsi:
         rmat = Cn(i.axis, i.order)
-        if transform_isequivalent(positions, masses, mol_tol, rmat):
+        if transform_isequivalent(positions, masses, geom_tol, rmat):
             out.append(i)
     return out
 
@@ -196,7 +196,8 @@ def _linear_mol_axis(mol):
 
     Returns
     -------
-    np.array, shape (3,)
+    : np.array
+        shape (3,)
     """
     coords = mol.positions - mol.positions.mean(axis=0)
     _, _, vh = np.linalg.svd(coords, full_matrices=False)
@@ -223,7 +224,7 @@ def _compute_R_max(positions, axis):
 
 
 @njit
-def _validate_c2_candidate(raw_axis, positions, masses, mol_tol, exclude_axis):
+def _validate_c2_candidate(raw_axis, positions, masses, geom_tol, exclude_axis):
     """
     Shared C2 validation kernel: normalize → exclude-filter → invariance test.
 
@@ -233,12 +234,14 @@ def _validate_c2_candidate(raw_axis, positions, masses, mol_tol, exclude_axis):
 
     Parameters
     ----------
-    raw_axis : np.ndarray, shape (3,)   — candidate vector (need not be unit)
-    exclude_axis : np.ndarray, shape (3,) — axis to reject (zeros(3) = no filter)
+    raw_axis : np.ndarray, shape (3,)
+        candidate vector (need not be unit)
+    exclude_axis : np.ndarray, shape (3,)
+        axis to reject (zeros(3) = no filter)
 
     Returns
     -------
-    np.ndarray, shape (3,)
+    : np.ndarray, shape (3,)
         Normalised unit axis if the candidate passes all checks; zeros(3) otherwise.
     """
     c2_axis = normalize(raw_axis)
@@ -246,13 +249,13 @@ def _validate_c2_candidate(raw_axis, positions, masses, mol_tol, exclude_axis):
         return np.zeros(3)
     if not (exclude_axis == np.zeros(3)).all() and issame_axis(c2_axis, exclude_axis):
         return np.zeros(3)
-    if transform_isequivalent(positions, masses, mol_tol, Cn(c2_axis, 2)):
+    if transform_isequivalent(positions, masses, geom_tol, Cn(c2_axis, 2)):
         return c2_axis
     return np.zeros(3)
 
 
 @njit
-def _c2a(positions, masses, mol_tol, sea_subset,
+def _c2a(positions, masses, geom_tol, sea_subset,
          exclude_axis=np.zeros(3), return_all=False):
     """
     Find C_2 axes from origin-to-midpoint vectors of atom pairs within a SEA.
@@ -264,7 +267,7 @@ def _c2a(positions, masses, mol_tol, sea_subset,
     for i in range(length):
         for j in range(i + 1, length):
             raw = positions[sea_subset[i], :] + positions[sea_subset[j], :]
-            result = _validate_c2_candidate(raw, positions, masses, mol_tol, exclude_axis)
+            result = _validate_c2_candidate(raw, positions, masses, geom_tol, exclude_axis)
             if not (result == np.zeros(3)).all():
                 if return_all:
                     out.append(result)
@@ -274,7 +277,7 @@ def _c2a(positions, masses, mol_tol, sea_subset,
 
 
 @njit
-def _c2b(positions, masses, mol_tol, sea_subset,
+def _c2b(positions, masses, geom_tol, sea_subset,
          exclude_axis=np.zeros(3), return_all=False):
     """
     Find C_2 axes from individual atom position vectors within a SEA.
@@ -285,7 +288,7 @@ def _c2b(positions, masses, mol_tol, sea_subset,
     out = []
     for i in range(length):
         result = _validate_c2_candidate(
-            positions[sea_subset[i], :], positions, masses, mol_tol, exclude_axis
+            positions[sea_subset[i], :], positions, masses, geom_tol, exclude_axis
         )
         if not (result == np.zeros(3)).all():
             if return_all:
@@ -296,7 +299,7 @@ def _c2b(positions, masses, mol_tol, sea_subset,
 
 
 @njit
-def _c2c(positions, masses, mol_tol, sea1_subset, sea2_subset,
+def _c2c(positions, masses, geom_tol, sea1_subset, sea2_subset,
          exclude_axis=np.zeros(3)):
     """
     Find a C_2 axis from the cross-product of two linear-SEA bond vectors.
@@ -307,7 +310,7 @@ def _c2c(positions, masses, mol_tol, sea1_subset, sea2_subset,
     rij = positions[sea1_subset[0], :] - positions[sea1_subset[1], :]
     rkl = positions[sea2_subset[0], :] - positions[sea2_subset[1], :]
     return _validate_c2_candidate(
-        np.cross(rij, rkl), positions, masses, mol_tol, exclude_axis
+        np.cross(rij, rkl), positions, masses, geom_tol, exclude_axis
     )
 
 
@@ -326,12 +329,12 @@ def _find_a_c2(mol, SEAs):
     """
     positions = mol.positions
     masses = mol.get_masses()
-    mol_tol = mol.info["geom_tol"]
+    geom_tol = mol.info["geom_tol"]
     for sea in SEAs:
-        a = _c2a(positions, masses, mol_tol, sea.subset)
+        a = _c2a(positions, masses, geom_tol, sea.subset)
         if len(a) != 0:
             return a[0]
-        b = _c2b(positions, masses, mol_tol, sea.subset)
+        b = _c2b(positions, masses, geom_tol, sea.subset)
         if len(b) != 0:
             return b[0]
         if sea.label == "Linear":
@@ -339,7 +342,7 @@ def _find_a_c2(mol, SEAs):
                 if sea == sea2:
                     continue
                 elif sea2.label == "Linear":
-                    c = _c2c(positions, masses, mol_tol, sea.subset, sea2.subset)
+                    c = _c2c(positions, masses, geom_tol, sea.subset, sea2.subset)
                     if not (c == np.zeros(3)).all():
                         return c
     return None
@@ -363,15 +366,15 @@ def _is_there_ortho_c2(mol, SEAs, paxis):
     ortho_tol = mol.info["geom_tol"] / _compute_R_max(mol.positions, paxis) * 1.10
     positions = mol.positions
     masses = mol.get_masses()
-    mol_tol = mol.info["geom_tol"]
+    geom_tol = mol.info["geom_tol"]
     for sea in SEAs:
-        b = _c2b(positions, masses, mol_tol, sea.subset, exclude_axis=paxis)
+        b = _c2b(positions, masses, geom_tol, sea.subset, exclude_axis=paxis)
         if len(b) != 0:
             b = b[0]
             if abs(np.dot(b, paxis)) <= ortho_tol:
                 return True, b
         else:
-            a = _c2a(positions, masses, mol_tol, sea.subset, exclude_axis=paxis)
+            a = _c2a(positions, masses, geom_tol, sea.subset, exclude_axis=paxis)
             if len(a) != 0:
                 a = a[0]
                 if abs(np.dot(a, paxis)) <= ortho_tol:
@@ -382,7 +385,7 @@ def _is_there_ortho_c2(mol, SEAs, paxis):
                         if sea == sea2:
                             continue
                         elif sea2.label == "Linear":
-                            c = _c2c(positions, masses, mol_tol, sea.subset, sea2.subset,
+                            c = _c2c(positions, masses, geom_tol, sea.subset, sea2.subset,
                                      exclude_axis=paxis)
                             if not (c == np.zeros(3)).all() and abs(np.dot(c, paxis)) <= ortho_tol:
                                 return True, c
@@ -405,12 +408,12 @@ def _num_C2(mol, SEAs):
     axes = []
     positions = mol.positions
     masses = mol.get_masses()
-    mol_tol = mol.info["geom_tol"]
+    geom_tol = mol.info["geom_tol"]
     for sea in SEAs:
-        a = _c2a(positions, masses, mol_tol, sea.subset, return_all=True)
+        a = _c2a(positions, masses, geom_tol, sea.subset, return_all=True)
         if len(a) != 0:
             axes.extend(a)
-        b = _c2b(positions, masses, mol_tol, sea.subset, return_all=True)
+        b = _c2b(positions, masses, geom_tol, sea.subset, return_all=True)
         if len(b) != 0:
             axes.extend(b)
     if len(axes) < 1:

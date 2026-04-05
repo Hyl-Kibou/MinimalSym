@@ -16,7 +16,7 @@ from .mol_ops import transform_isequivalent
 # ── Icosahedral geometry ──────────────────────────────────────────────────────
 
 @njit
-def _jit_find_C3s_for_Ih(size, positions, masses, mol_tol):
+def _jit_find_C3s_for_Ih(size, positions, masses, geom_tol):
     """
     Find the 10 unique C3 axes of an icosahedral (Ih/I) molecule.
 
@@ -30,7 +30,7 @@ def _jit_find_C3s_for_Ih(size, positions, masses, mol_tol):
     Strategy
     --------
     Enumerate all triples (i, j, k) of atoms. A triple forms an equilateral
-    triangle when all three pairwise squared distances are equal within mol_tol.
+    triangle when all three pairwise squared distances are equal within geom_tol.
     The C3 axis candidate is the normal to the plane of the triangle.
     The candidate is accepted only if the full C3 rotation leaves the molecule
     invariant.
@@ -42,11 +42,12 @@ def _jit_find_C3s_for_Ih(size, positions, masses, mol_tol):
     size : int
     positions : np.ndarray, shape (n, 3)
     masses : np.ndarray, shape (n,)
-    mol_tol : float
+    geom_tol : float
 
     Returns
     -------
-    list of np.ndarray, shape (3,)  — exactly 10 unique unit C3-axis vectors.
+    list[np.ndarray], shape (3,)
+        exactly 10 unique unit C3-axis vectors.
 
     Raises
     ------
@@ -63,11 +64,11 @@ def _jit_find_C3s_for_Ih(size, positions, masses, mol_tol):
                 nij2 = rij[0]*rij[0] + rij[1]*rij[1] + rij[2]*rij[2]
                 njk2 = rjk[0]*rjk[0] + rjk[1]*rjk[1] + rjk[2]*rjk[2]
                 nik2 = rik[0]*rik[0] + rik[1]*rik[1] + rik[2]*rik[2]
-                if float_isclose(nij2, njk2, atol=mol_tol) and float_isclose(nij2, nik2, atol=mol_tol):
+                if float_isclose(nij2, njk2, atol=geom_tol) and float_isclose(nij2, nik2, atol=geom_tol):
                     c3_axis = normalize(np.cross(rij, rjk))
                     if not (c3_axis == np.zeros(3)).all():
                         c3 = Cn(c3_axis, 3)
-                        if transform_isequivalent(positions, masses, mol_tol, c3):
+                        if transform_isequivalent(positions, masses, geom_tol, c3):
                             c3_axes.append(c3_axis)
     unique_axes = [c3_axes[0]]
     for i in c3_axes:
@@ -97,7 +98,7 @@ def _find_C3s_for_Ih(mol):
 
     Returns
     -------
-    List[np.array]  — each array has shape (3,)
+    List[np.array], shape (3,)        
     """
     return _jit_find_C3s_for_Ih(len(mol), mol.positions, mol.get_masses(), mol.info["geom_tol"])
 
@@ -105,11 +106,11 @@ def _find_C3s_for_Ih(mol):
 # ── Octahedral geometry ───────────────────────────────────────────────────────
 
 @njit
-def _check_square(va, vb, a, b, c, d, positions, masses, mol_tol):
+def _check_square(va, vb, a, b, c, d, positions, masses, geom_tol):
     """
     Test whether four edge lengths form a square and, if so, return the C4 axis.
 
-    A square has four equal sides (a==b==c==d within mol_tol). The C4 axis
+    A square has four equal sides (a==b==c==d within geom_tol). The C4 axis
     is the normal to the plane of the square: cross(edge1, edge2).
 
     Parameters
@@ -119,7 +120,7 @@ def _check_square(va, vb, a, b, c, d, positions, masses, mol_tol):
     a, b, c, d : float
         Squared lengths of the four sides to compare.
     positions, masses : np.ndarray
-    mol_tol : float
+    geom_tol : float
 
     Returns
     -------
@@ -127,19 +128,19 @@ def _check_square(va, vb, a, b, c, d, positions, masses, mol_tol):
         Unit C4-axis if valid square and rotation leaves molecule invariant;
         otherwise a zero vector.
     """
-    if (float_isclose(a, b, atol=mol_tol) and
-            float_isclose(c, d, atol=mol_tol) and
-            float_isclose(a, c, atol=mol_tol)):
+    if (float_isclose(a, b, atol=geom_tol) and
+            float_isclose(c, d, atol=geom_tol) and
+            float_isclose(a, c, atol=geom_tol)):
         c4_axis = normalize(np.cross(va, vb))
         if not (c4_axis == np.zeros(3)).all():
             c4 = Cn(c4_axis, 4)
-            if transform_isequivalent(positions, masses, mol_tol, c4):
+            if transform_isequivalent(positions, masses, geom_tol, c4):
                 return c4_axis
     return np.zeros(3)
 
 
 @njit
-def _jit_find_C4s_for_Oh(size, positions, masses, mol_tol):
+def _jit_find_C4s_for_Oh(size, positions, masses, geom_tol):
     """
     Find the 3 unique C4 axes of an octahedral (Oh/O) molecule.
 
@@ -158,11 +159,12 @@ def _jit_find_C4s_for_Oh(size, positions, masses, mol_tol):
     size : int
     positions : np.ndarray, shape (n, 3)
     masses : np.ndarray, shape (n,)
-    mol_tol : float
+    geom_tol : float
 
     Returns
     -------
-    list of np.ndarray, shape (3,)  — exactly 3 unique unit C4-axis vectors.
+    list of np.ndarray, shape (3,)
+        exactly 3 unique unit C4-axis vectors.
 
     Raises
     ------
@@ -190,15 +192,15 @@ def _jit_find_C4s_for_Oh(size, positions, masses, mol_tol):
                         njl2 = rjl[0]*rjl[0] + rjl[1]*rjl[1] + rjl[2]*rjl[2]
 
                         c4_axis = _check_square(rij, rjk, nij2, njk2, nkl2, nil2,
-                                                positions, masses, mol_tol)
+                                                positions, masses, geom_tol)
                         if not (c4_axis == np.zeros(3)).all():
                             c4_axes.append(c4_axis)
                         c4_axis = _check_square(rij, rjl, nij2, njl2, nkl2, nik2,
-                                                positions, masses, mol_tol)
+                                                positions, masses, geom_tol)
                         if not (c4_axis == np.zeros(3)).all():
                             c4_axes.append(c4_axis)
                         c4_axis = _check_square(rik, rjk, nik2, njk2, njl2, nil2,
-                                                positions, masses, mol_tol)
+                                                positions, masses, geom_tol)
                         if not (c4_axis == np.zeros(3)).all():
                             c4_axes.append(c4_axis)
 
@@ -233,6 +235,6 @@ def _find_C4s_for_Oh(mol):
 
     Returns
     -------
-    List[np.array]  — each array has shape (3,)
+    List[np.array], shape (3,)
     """
     return _jit_find_C4s_for_Oh(len(mol), mol.positions, mol.get_masses(), mol.info["geom_tol"])

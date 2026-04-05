@@ -2,13 +2,16 @@
 requires = ["setuptools>=77.0.3"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools.packages.find]
+exclude = ["site*"]
+
 [project]
 name = "MinimalSym"
-version = "0.8.0"
+version = "0.9.0"
 authors = [
     { name = "Sebastian Hernández", email = "s3b4s7i4nhg@gmail.com" }
 ]
-description = "A program for molecular symmetry detection. Minimal version of MolSym library."
+description = "**MinimalSym** is a Python package for molecular symmetry analysis in **Atomic Simulation Environment** **(ASE)** `Atoms` objects, including structure symmetrization."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]

@@ -48,7 +48,7 @@ def _is_there_sigmav(mol, SEAs, paxis):
     axes = []
     positions = mol.positions
     masses = mol.get_masses()
-    mol_tol = mol.info["geom_tol"]
+    geom_tol = mol.info["geom_tol"]
     for sea in SEAs:
         length = len(sea.subset)
         if length < 2:
@@ -59,7 +59,7 @@ def _is_there_sigmav(mol, SEAs, paxis):
             n = normalize(positions[A, :] - positions[B, :])
             if n is not None and not (n == np.zeros(3)).all():
                 sigma = reflection_matrix(n)
-                if transform_isequivalent(positions, masses, mol_tol, sigma):
+                if transform_isequivalent(positions, masses, geom_tol, sigma):
                     axes.append(n)
     if len(axes) < 1:
         if mol_is_planar(mol):
@@ -95,8 +95,8 @@ def mol_is_planar(mol):
     -------
     bool
     """
-    mol_tol = mol.info["geom_tol"]
-    rank = np.linalg.matrix_rank(mol.positions, tol=mol_tol)
+    geom_tol = mol.info["geom_tol"]
+    rank = np.linalg.matrix_rank(mol.positions, tol=geom_tol)
     if rank < 3:
         axis = _planar_mol_axis(mol)
         new_mol, _, _ = rotate_mol_to_symels(mol, axis, np.array([0, 0, 0]))
@@ -104,7 +104,7 @@ def mol_is_planar(mol):
         new_positions = new_mol.positions
         positions_B = transform(new_positions, matrix)
         for i in range(len(mol)):
-            if np.linalg.norm(new_positions[i,:] - positions_B[i,:]) >= mol_tol:
+            if np.linalg.norm(new_positions[i,:] - positions_B[i,:]) >= geom_tol:
                 return False
         return True
     return False
@@ -120,7 +120,8 @@ def _planar_mol_axis(mol):
 
     Returns
     -------
-    np.array, shape (3,) or None
+    : np.array
+        shape (3,) or None
     """
     coords = mol.positions - mol.positions.mean(axis=0)
     _, _, vh = np.linalg.svd(coords, full_matrices=False)

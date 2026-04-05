@@ -1,6 +1,15 @@
-# MinimalSym
+# MinimalSym – Molecular Symmetry Tools for Python
 
-**MinimalSym** is a Python package for handling molecular symmetry in **ASE** `Atoms` objects.
+![Python](https://img.shields.io/badge/python-3.9+-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![PyPI](https://img.shields.io/pypi/v/minimalsym)
+
+**MinimalSym** is a Python package for molecular symmetry analysis in **Atomic Simulation Environment** **(ASE)** `Atoms` objects, including structure symmetrization.
+It provides fast, geometry-based symmetry detection and manipulation,
+designed to integrate seamlessly into existing ASE workflows.
+
+Internally, MinimalSym constructs symmetry operations and atom mappings,
+then projects atomic positions onto symmetry elements to enforce exact symmetry.
 
 ---
 
@@ -8,8 +17,16 @@
 
 * **Point group detection:** Detect common point groups for molecules based on their geometry.
 * **Molecule symmetrization:** Apply symmetry operations to molecules, aligning them to the detected point group.
-* **Get symmetry-inequivalent points:** Atoms are grouped if any symmetry operation (proper or improper) maps one onto the other.
+* **Find symmetry-inequivalent atoms:** Atoms are grouped if any symmetry operation (proper or improper) maps one onto the other.
 * **ASE Atoms-native workflow:** Directly integrates with ASE Atoms objects, enabling smooth use in existing workflows.
+
+---
+
+## Scope and limitations
+
+- Works on **finite molecules** (no periodic structure support)
+- Uses **geometric tolerance-based** symmetry detection
+- Results depend on the chosen `geom_tol`
 
 ---
 
@@ -32,6 +49,15 @@ and the tolerance used during symmetry detection.
 
 ---
 
+## API Overview
+
+- `symmetrize(mol, geom_tol=...) -> Atoms`
+- `get_point_group(mol, geom_tol=...) -> str`
+- `is_planar(mol, geom_tol=...) -> bool`
+- `get_inequivalent(mol, geom_tol=...) -> (unique, parent)`
+
+---
+
 ## Installation
 
 MinimalSym is tested with **Python 3.12–3.13**, but should also work with **Python 3.9–3.13**.
@@ -48,6 +74,8 @@ pip install minimalsym
 
 An ASE `Atoms` object is passed to the function and a new symmetrized
 `Atoms` object is returned.
+
+The returned object includes metadata such as the detected point group.
 
 ```python
 from ase import Atoms
@@ -124,24 +152,24 @@ Two atoms are in the same equivalence class if any symmetry operation (proper or
 
 An ASE `Atoms` object is passed to the function and a `tuple` is returned.
 
-`tuple(unique, parent)`
+Returns: `(unique, parent)`
 
-&nbsp; &nbsp; `unique` : sorted representative atom indices (one per class). 
+&nbsp; &nbsp; `unique` : sorted representative atom indices (one per equivalence class).
 
-&nbsp; &nbsp; `parent` : `parent[i]` is the representative of atom `i`.
+&nbsp; &nbsp; `parent` : array where `parent[i]` gives the representative of atom `i`
 
 ```python
 from minimalsym import get_inequivalent
 
 ## Get symmetry-inequivalent atoms for molecule
-atom_indices_list, representatives = get_inequivalent(mol, geom_tol=0.3)
+atom_indices_list, parent_mapping = get_inequivalent(mol, geom_tol=0.3)
 
 ## Check output
 print("Inequivalent indices list: ", atom_indices_list)
 # Example output: "Inequivalent indices list: [0 1 2]"
 
-print("Representatives: ", representatives)
-# Example output: "Inequivalent indices list: [0 1 2 0 0 1 1 1 1 2 2 1]"
+print("Parent mapping: ", parent_mapping)
+# Example output: Parent mapping: [0 1 2 0 0 1 1 1 1 2 2 1]"
 ```
 
 ---

@@ -1,4 +1,11 @@
 # Flowchart
 
 ## Symmetrize
+
+This diagram summarizes the symmetrization algorithm used in MinimalSym.
+
+It shows how symmetry descriptors (Symtext) are constructed,
+symmetry-equivalent atom groups (SEAs) are processed, projected onto
+symmetry elements, and reconstructed to enforce symmetry.
+
 ![Flowchart of symmetrize function](img/Minimalsym.drawio.png)

@@ -1,5 +1,5 @@
 """
-pg_detect.py — Point-group detection: public API.
+pg_detect.py — Point-group detection.
 
 This module exposes a single public function, find_point_group(), which
 implements the Beruski & Vidal (2013) decision-tree algorithm.
@@ -58,14 +58,14 @@ class PointGroupResult:
 
 # ── Private classifier helpers ────────────────────────────────────────────────
 
-def _classify_linear(mol, positions, masses, mol_tol):
+def _classify_linear(mol, positions, masses, geom_tol):
     """Classify a linear molecule (Ia ~= 0). Returns PointGroupResult."""
     paxis = _linear_mol_axis(mol)
-    pg = "D0h" if transform_isequivalent(positions, masses, mol_tol, inversion_matrix()) else "C0v"
+    pg = "D0h" if transform_isequivalent(positions, masses, geom_tol, inversion_matrix()) else "C0v"
     return PointGroupResult(pg=pg, paxis=paxis, saxis=np.zeros(3))
 
 
-def _classify_spherical_top(mol, positions, masses, mol_tol):
+def _classify_spherical_top(mol, positions, masses, geom_tol):
     """
     Classify a spherical top (Ia ~= Ib ~= Ic).
     Discriminates T/O/I families by the number of distinct C2 axes.
@@ -76,9 +76,9 @@ def _classify_spherical_top(mol, positions, masses, mol_tol):
     if num_C2 is None:
         warnings.warn("Molecule was wrongly classified as a spherical top, (num_C2 is None), probably due to high eigen_tol. " \
             "Process will continue as general symmetry.")
-        return _classify_general(mol, positions, masses, mol_tol)
+        return _classify_general(mol, positions, masses, geom_tol)
     n, axes = num_C2
-    invertable = transform_isequivalent(positions, masses, mol_tol, inversion_matrix())
+    invertable = transform_isequivalent(positions, masses, geom_tol, inversion_matrix())
 
     if n >= 16:
         # Icosahedral: paxis = C5 axis, saxis = C2 axis from golden-ratio geometry.
@@ -98,7 +98,7 @@ def _classify_spherical_top(mol, positions, masses, mol_tol):
         except:
             warnings.warn(f"Molecule was wrongly classified as a spherical top, (n is {n}), probably due to high eigen_tol or geom_tol. " \
                 "Process will continue as general symmetry.")
-            return _classify_general(mol, positions, masses, mol_tol)
+            return _classify_general(mol, positions, masses, geom_tol)
     elif n == 15:
         # Icosahedral: paxis = C5 axis, saxis = C2 axis from golden-ratio geometry.
         c2_axis = axes[0]
@@ -130,7 +130,7 @@ def _classify_spherical_top(mol, positions, masses, mol_tol):
 
         # Detect improper rotation S4 (characteristic of Td/Th)
         S4 = Sn(paxis, 4)
-        has_S4 = transform_isequivalent(positions, masses, mol_tol, S4)
+        has_S4 = transform_isequivalent(positions, masses, geom_tol, S4)
 
         if invertable:
             pg = "Th"
@@ -142,11 +142,11 @@ def _classify_spherical_top(mol, positions, masses, mol_tol):
     else:
         warnings.warn(f"Molecule was wrongly classified as a spherical top, (n is {n}), probably due to high eigen_tol or geom_tol. " \
             "Process will continue as general symmetry.")
-        return _classify_general(mol, positions, masses, mol_tol)
+        return _classify_general(mol, positions, masses, geom_tol)
 
     return PointGroupResult(pg=pg, paxis=paxis, saxis=saxis)
 
-def _validate_all_c2_ortho(positions, masses, mol_tol, paxis, c2_ortho, Cn_order):
+def _validate_all_c2_ortho(positions, masses, geom_tol, paxis, c2_ortho, Cn_order):
     """
     Validate the c2 orthogonal rotations for a molecule.
     Generates all the c2 orthogonal axis from c2_ortho,
@@ -154,11 +154,11 @@ def _validate_all_c2_ortho(positions, masses, mol_tol, paxis, c2_ortho, Cn_order
     """
     c2_ortho_axes = generate_cyclic_axes(paxis, c2_ortho, Cn_order)
     for c2_ortho_axis in c2_ortho_axes:
-        if not transform_isequivalent(positions, masses, mol_tol, Cn(c2_ortho_axis, 2)):
+        if not transform_isequivalent(positions, masses, geom_tol, Cn(c2_ortho_axis, 2)):
             return False
     return True
 
-def _validate_all_sigmav(positions, masses, mol_tol, paxis, sigmav, Cn_order):
+def _validate_all_sigmav(positions, masses, geom_tol, paxis, sigmav, Cn_order):
     """
     Validate the vertical mirror planes for a molecule.
     Generates all the norm axis of the mirror planes from sigmav,
@@ -166,11 +166,11 @@ def _validate_all_sigmav(positions, masses, mol_tol, paxis, sigmav, Cn_order):
     """
     sigmav_axes = generate_cyclic_axes(paxis, sigmav, Cn_order)
     for sigmav_axis in sigmav_axes:
-        if not transform_isequivalent(positions, masses, mol_tol, reflection_matrix(sigmav_axis)):
+        if not transform_isequivalent(positions, masses, geom_tol, reflection_matrix(sigmav_axis)):
             return False
     return True
 
-def _classify_subfamily(mol, seas, positions, masses, mol_tol, paxis, Cn_order):
+def _classify_subfamily(mol, seas, positions, masses, geom_tol, paxis, Cn_order):
     """
     Determine the point-group subfamily (h/v/d/S2n/pure) once paxis and
     Cn_order are known. Returns the full Schoenflies symbol and updated saxis.
@@ -181,10 +181,10 @@ def _classify_subfamily(mol, seas, positions, masses, mol_tol, paxis, Cn_order):
     sigmah_chk = _is_there_sigmah(mol, paxis)
 
     if ortho_c2_chk:
-        ortho_c2_chk = _validate_all_c2_ortho(positions, masses, mol_tol, paxis, c2_ortho, Cn_order)
+        ortho_c2_chk = _validate_all_c2_ortho(positions, masses, geom_tol, paxis, c2_ortho, Cn_order)
 
     if sigmav_chk:
-        sigmav_chk = _validate_all_sigmav(positions, masses, mol_tol, paxis, sigmav, Cn_order)
+        sigmav_chk = _validate_all_sigmav(positions, masses, geom_tol, paxis, sigmav, Cn_order)
 
     if ortho_c2_chk:
         saxis = c2_ortho
@@ -192,7 +192,7 @@ def _classify_subfamily(mol, seas, positions, masses, mol_tol, paxis, Cn_order):
             pg = "D" + str(Cn_order) + "h"
         elif sigmav_chk:
             S2n = Sn(paxis, Cn_order * 2)
-            if transform_isequivalent(positions, masses, mol_tol, S2n):
+            if transform_isequivalent(positions, masses, geom_tol, S2n):
                 pg = "D" + str(Cn_order) + "d"
             else:
                 pg = "D" + str(Cn_order)
@@ -208,7 +208,7 @@ def _classify_subfamily(mol, seas, positions, masses, mol_tol, paxis, Cn_order):
             saxis = normalize(np.cross(paxis, sigmav))
     else:
         S2n = Sn(paxis, Cn_order * 2)
-        if transform_isequivalent(positions, masses, mol_tol, S2n):
+        if transform_isequivalent(positions, masses, geom_tol, S2n):
             pg = "S" + str(2 * Cn_order)
         else:
             pg = "C" + str(Cn_order)
@@ -216,7 +216,7 @@ def _classify_subfamily(mol, seas, positions, masses, mol_tol, paxis, Cn_order):
     return pg, saxis
 
 
-def _classify_general(mol, positions, masses, mol_tol):
+def _classify_general(mol, positions, masses, geom_tol):
     """
     Classify a general symmetry.
     Returns PointGroupResult.
@@ -233,7 +233,7 @@ def _classify_general(mol, positions, masses, mol_tol):
         c2 = _find_a_c2(mol, seas)
         if c2 is None:
             # No proper rotation -> Ci, Cs, or C1.
-            if transform_isequivalent(positions, masses, mol_tol, inversion_matrix()):
+            if transform_isequivalent(positions, masses, geom_tol, inversion_matrix()):
                 return PointGroupResult(pg="Ci", paxis=paxis, saxis=np.zeros(3))
             sigmav_chk, sigmav = _is_there_sigmav(mol, seas, np.zeros(3))
             if sigmav_chk:
@@ -244,7 +244,7 @@ def _classify_general(mol, positions, masses, mol_tol):
         paxis = c2
         Cn_order = 2
 
-    pg, saxis = _classify_subfamily(mol, seas, positions, masses, mol_tol, paxis, Cn_order)
+    pg, saxis = _classify_subfamily(mol, seas, positions, masses, geom_tol, paxis, Cn_order)
     return PointGroupResult(pg=pg, paxis=paxis, saxis=saxis)
 
 # ── Public API ────────────────────────────────────────────────────────────────
@@ -277,10 +277,7 @@ def find_point_group(mol):
 
     Returns
     -------
-    PointGroupResult
-        .pg    — Schoenflies symbol (e.g. "C2v", "D3h", "Oh").
-        .paxis — principal axis, shape (3,); zeros when not applicable.
-        .saxis — secondary axis, shape (3,); zeros when not applicable.
+    : PointGroupResult
 
     Raises
     ------
@@ -288,7 +285,7 @@ def find_point_group(mol):
         If mol.info["geom_tol"] is not set.
     """
     try:
-        mol_tol = mol.info["geom_tol"]
+        geom_tol = mol.info["geom_tol"]
     except KeyError:
         raise Exception("Atoms object geometric tolerance hasn't been set. Set it with Atoms.info[\"geom_tol\"]=.")
 
@@ -307,10 +304,10 @@ def find_point_group(mol):
     _idx = evals_mol.argsort()
     Ia_mol, Ib_mol, Ic_mol = evals_mol[_idx]
 
-    if inertia_isclose(Ia_mol, 0.0, atol=mol_tol, rtol=eigen_tol):
-        return _classify_linear(mol, positions, masses, mol_tol)
+    if inertia_isclose(Ia_mol, 0.0, atol=geom_tol, rtol=eigen_tol):
+        return _classify_linear(mol, positions, masses, geom_tol)
 
-    elif inertia_isclose(Ia_mol, Ib_mol, atol=mol_tol, rtol=eigen_tol) and inertia_isclose(Ia_mol, Ic_mol, atol=mol_tol, rtol=eigen_tol):
-        return _classify_spherical_top(mol, positions, masses, mol_tol)
+    elif inertia_isclose(Ia_mol, Ib_mol, atol=geom_tol, rtol=eigen_tol) and inertia_isclose(Ia_mol, Ic_mol, atol=geom_tol, rtol=eigen_tol):
+        return _classify_spherical_top(mol, positions, masses, geom_tol)
 
-    return _classify_general(mol, positions, masses, mol_tol)
+    return _classify_general(mol, positions, masses, geom_tol)

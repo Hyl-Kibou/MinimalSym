@@ -15,10 +15,10 @@ from .symel import Symel
 # ── JIT kernels ───────────────────────────────────────────────────────────────
 
 @njit
-def _jit_where_you_go(positions, mol_tol, atom, rrep):
+def _jit_where_you_go(positions, geom_tol, atom, rrep):
     """Return the index of the atom that *atom* maps to under *rrep*."""
     ratom = np.dot(rrep, positions[atom, :].T)
-    tol2 = mol_tol*mol_tol
+    tol2 = geom_tol*geom_tol
     for i in range(len(positions)):
         dist = positions[i,:] - ratom
         if (dist[0]*dist[0] + dist[1]*dist[1] + dist[2]*dist[2]) < tol2:
@@ -27,7 +27,7 @@ def _jit_where_you_go(positions, mol_tol, atom, rrep):
 
 
 @njit
-def _jit_get_atom_mapping(positions, mol_tol, rreps):
+def _jit_get_atom_mapping(positions, geom_tol, rreps):
     """Build the full (n_atoms × n_symels) permutation map."""
     natoms = len(positions)
     nsymels = rreps.shape[0]
@@ -37,7 +37,7 @@ def _jit_get_atom_mapping(positions, mol_tol, rreps):
             amap[i, j] = np.int64(-1)
     for atom in range(natoms):
         for s in range(nsymels):
-            amap[atom, s] = _jit_where_you_go(positions, mol_tol, atom, rreps[s])
+            amap[atom, s] = _jit_where_you_go(positions, geom_tol, atom, rreps[s])
     return amap
 
 
@@ -72,7 +72,8 @@ def _get_atom_mapping(mol, symels):
 
     Returns
     -------
-    np.ndarray, shape (n_atoms, n_symels)
+    : np.ndarray
+        shape (n_atoms, n_symels)
 
     Raises
     ------

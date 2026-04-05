@@ -1,14 +1,11 @@
 site_name: MinimalSym
-theme:
-  name: material
-  features:
-    - content.code.copy
-    - navigation.sections
-    - navigation.expand
-    - toc.follow
 
 repo_url: https://github.com/hyl-kibou/minimalsym
 repo_name: minimalsym
+watch:
+  - docs
+  - minimalsym
+  - mkdocs.yml  
 
 plugins:
   - search
@@ -17,8 +14,41 @@ plugins:
         python:
           options:
             docstring_style: numpy
-            show_source: false            
-            show_submodules: true            
+            show_source: true       
+            show_submodules: true
+            show_labels: true
+            inherited_members: false
+            members_order: source
+            summary: true
+            show_docstring_modules: true
+            heading_level: 2
+
+            backlinks: tree
+            docstring_options:
+              ignore_init_summary: true
+            docstring_section_style: list
+            filters: public
+            inherited_members: true
+            line_length: 88
+            merge_init_into_class: true
+            parameter_headings: false
+            type_parameter_headings: true
+            preload_modules: [minimalsym]
+            relative_crossrefs: true
+            scoped_crossrefs: true
+            separate_signature: true
+            show_bases: false
+            show_inheritance_diagram: true
+            show_root_heading: true
+            show_root_full_path: false
+            show_signature_annotations: true
+            show_signature_type_parameters: true
+            show_source: true
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            signature_crossrefs: true
+            summary: true
+            unwrap_annotated: true
 
 markdown_extensions:
   - pymdownx.highlight:
@@ -27,14 +57,66 @@ markdown_extensions:
   - pymdownx.inlinehilite  
   - pymdownx.snippets
   - admonition
+  - md_in_html
+  - attr_list
   - pymdownx.details
 
 nav:
   - Home: index.md
   - Installation: installation.md
-  - Usage: usage.md
+  - Usage: 
+      - Examples: usage/examples.md
+      - Concepts: usage/concepts.md
   - Flowchart: flowchart.md
   - API:
       - Overview: api/index.md
       - Public: api/public.md
-      - Internal: api/internal.md
+      - Internal API:
+        - Internal Overview: api/internal/overview.md
+        - API Helpers: api/internal/api_helpers.md
+        - Symmetry Detection: api/internal/detection.md
+        - Symmetry Representation: api/internal/representation.md
+        - Group Construction: api/internal/group_construction.md
+        - Geometry & Molecular Operations: api/internal/geometry.md
+        - Decomposition & Candidate Generation: api/internal/decomposition.md
+        - Utilities: api/internal/utilities.md
+
+theme:
+  icon:
+    annotation: material/plus-circle
+  name: material
+  features:
+  - announce.dismiss
+  - content.code.annotate
+  - content.code.copy
+  - content.tooltips
+  - navigation.footer
+  - navigation.instant.preview
+  - navigation.path
+  - navigation.sections
+  - navigation.tabs
+  - navigation.tabs.sticky
+  - navigation.top
+  - search.highlight
+  - search.suggest
+  - toc.follow
+  palette:
+  - media: "(prefers-color-scheme)"
+    toggle:
+      icon: material/brightness-auto
+      name: Switch to light mode
+  - media: "(prefers-color-scheme: light)"
+    scheme: custom-theme
+    toggle:
+      icon: material/weather-sunny
+      name: Switch to dark mode
+  - media: "(prefers-color-scheme: dark)"
+    scheme: slate
+    primary: black
+    accent: lime
+    toggle:
+      icon: material/weather-night
+      name: Switch to system preference
+
+extra_css:
+  - stylesheets/extra.css

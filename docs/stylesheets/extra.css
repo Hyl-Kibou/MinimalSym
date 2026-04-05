@@ -1,0 +1,16 @@
+[data-md-color-scheme="custom-theme"] {
+  --md-primary-fg-color:               #3a38a6;
+  /*
+  --md-primary-fg-color--light:        #e5ff00;
+  --md-primary-fg-color--dark:         #2d9500;
+  */
+  --md-primary-bg-color:               #f8f8f8;
+  --md-primary-bg-color--light:        #f8f8f8;
+
+  --md-accent-fg-color:                #006aff;
+  --md-accent-fg-color--transparent:   #ff9d00;
+  /*
+  --md-accent-bg-color:                #f8f8f8;
+  --md-accent-bg-color--light:         #ff00aa;
+  */
+}

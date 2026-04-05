@@ -48,11 +48,11 @@ class Symtext():
         return f"\n{self.mol}\n{self.symels}\nAtom map:\n{self.atom_map}"
 
     @classmethod
-    def empty(cls) -> Symtext:
+    def empty(cls):
         return Symtext(None, None, None, PointGroup.from_string("C1"), [], [])
 
     @classmethod
-    def from_molecule(cls, mol) -> Symtext:
+    def from_molecule(cls, mol):
         """
         Build a Symtext from an ase.Atoms object.
 
@@ -77,7 +77,7 @@ class Symtext():
         return Symtext(mol, rotate_to_std, reverse_rotate, pg, symels, atom_map)
 
     @classmethod
-    def from_PointGroupResult(cls, mol, pgr, is_linear:bool=False) -> Symtext:
+    def from_PointGroupResult(cls, mol, pgr, is_linear:bool=False):
         """
         Build a Symtext from a PointGroupResult object.
 

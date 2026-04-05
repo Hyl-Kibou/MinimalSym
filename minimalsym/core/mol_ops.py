@@ -74,19 +74,19 @@ def distance_matrix(positions):
     return dm
 
 @njit
-def _jit_find_SEAs(size, positions, tol):
+def _jit_find_SEAs(size, positions, geom_tol):
     dm = distance_matrix(positions)
     # Pre-sort each row once to avoid storing ragged argsort arrays
     sorted_dm = np.empty_like(dm)
     for i in range(size):
         sorted_dm[i] = np.sort(dm[i])
-    # Union-find: group atoms whose sorted distance profiles agree within tol
+    # Union-find: group atoms whose sorted distance profiles agree within geom_tol
     parent = np.arange(size, dtype=np.int64)
     for i in range(size):
         for j in range(i + 1, size):
             chk = True
             for k in range(size):
-                if abs(sorted_dm[i, k] - sorted_dm[j, k]) >= tol:
+                if abs(sorted_dm[i, k] - sorted_dm[j, k]) >= geom_tol:
                     chk = False
                     break
             if chk:
@@ -178,9 +178,9 @@ def get_SEAs_from_atom_map(atom_map):
     return SEAs
 
 @njit
-def _isequivalent(A_masses, A_positions, B_masses, B_positions, mol_tol):
+def _isequivalent(A_masses, A_positions, B_masses, B_positions, geom_tol):
     matched = np.zeros(len(B_masses), dtype=np.bool_)
-    tol2 = mol_tol*mol_tol
+    tol2 = geom_tol*geom_tol
     for i in range(len(A_masses)):
         for j in range(len(B_masses)):
             # Reduce search list so large molecules are a bit faster
@@ -188,8 +188,6 @@ def _isequivalent(A_masses, A_positions, B_masses, B_positions, mol_tol):
                 # Check that masses are equal
                 if A_masses[i] == B_masses[j]:
                     # Check if atoms are about at the same Cartesian point
-                    #zs = np.abs(A_positions[i,:]-B_positions[j,:])
-                    #if np.allclose(zs, [0.0,0.0,0.0], atol=mol_tol):
                     zs = A_positions[i,:]-B_positions[j,:]
                     if (zs[0]*zs[0] + zs[1]*zs[1] + zs[2]*zs[2]) < tol2:
                         matched[j]=True
@@ -200,9 +198,9 @@ def _isequivalent(A_masses, A_positions, B_masses, B_positions, mol_tol):
     return False
 
 @njit
-def transform_isequivalent(positions, masses, mol_tol, matrix):
+def transform_isequivalent(positions, masses, geom_tol, matrix):
     positions_B = transform(positions, matrix)
-    return _isequivalent(masses, positions, masses, positions_B, mol_tol)
+    return _isequivalent(masses, positions, masses, positions_B, geom_tol)
 
 @njit
 def _jit_calcmoit(positions, masses):

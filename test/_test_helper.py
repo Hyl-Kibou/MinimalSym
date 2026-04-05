@@ -1,6 +1,6 @@
 import numpy as np
 import ase
-from minimalsym.minimalsym import _set_tolerances
+from minimalsym.api import _set_tolerances
 
 def read_file(file):
 

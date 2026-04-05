@@ -2,7 +2,7 @@ from ase.io import read, write
 from ase import Atoms
 import os
 import numpy as np
-from minimalsym import symmetrize, get_point_group, is_planar, get_inequivalent
+from minimalsym import symmetrize, get_point_group, is_planar, get_inequivalent, generate_symmetry_candidates
 
 PATH = os.path.dirname(os.path.realpath(__file__))
 folder_path = os.path.join(PATH, "new_xyz")
@@ -59,13 +59,26 @@ def test_get_inequivalent():
     mol = read(os.path.join(folder_path, "minimos.xyz"), index=":")[0]
 
     ## Get symmetry-inequivalent atoms for molecule
-    atom_indices_list, representatives = get_inequivalent(mol, geom_tol=0.3)
+    atom_indices_list, parent_mapping = get_inequivalent(mol, geom_tol=0.3)
 
     ## Check output
     print("Inequivalent indices list: ", atom_indices_list)
     # Example output: "Inequivalent indices list: [0 1 2]"
     assert (atom_indices_list == np.array([0, 1, 2])).all(), f"atom_indices_list: {atom_indices_list}"
 
-    print("Representatives: ", representatives)
-    # Example output: "Inequivalent indices list: [0 1 2 0 0 1 1 1 1 2 2 1]"
-    assert (representatives == np.array([0, 1, 2, 0, 0, 1, 1, 1, 1, 2, 2, 1])).all(), f"representatives: {representatives}"
+    print("Parent mapping: ", parent_mapping)
+    # Example output: Parent mapping: [0 1 2 0 0 1 1 1 1 2 2 1]"
+    assert (parent_mapping == np.array([0, 1, 2, 0, 0, 1, 1, 1, 1, 2, 2, 1])).all(), f"parent_mapping: {parent_mapping}"
+
+def test_generate_symmetry_candidates():
+    mol = read(os.path.join(folder_path, "minimos.xyz"), index=":")[0]
+
+    ## Get candidate symetries of mol
+    candidate_symmetries = generate_symmetry_candidates(mol, geom_tol=0.5)
+
+    for elem in candidate_symmetries:
+        print(f"Symmetrized molecule: {elem.mol}")
+        print(f"Point group: {elem.pg}")
+        print(f"RMSD: {elem.rmsd}")
+
+    assert (len(candidate_symmetries) == 5), f"Expected 5 candidates got {len(candidate_symmetries)}. {candidate_symmetries}"

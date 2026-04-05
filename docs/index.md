@@ -2,37 +2,14 @@
 
 ![PyPI](https://img.shields.io/pypi/v/minimalsym)
 ![Python](https://img.shields.io/pypi/pyversions/minimalsym)
-![License](https://img.shields.io/badge/license-MIT-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
 
-**MinimalSym** is a Python package for handling molecular symmetry in **ASE** `Atoms` objects.
+**MinimalSym** is a Python package for molecular symmetry analysis in **Atomic Simulation Environment** **(ASE)** `Atoms` objects, including structure symmetrization.
+It provides fast, geometry-based symmetry detection and manipulation,
+designed to integrate seamlessly into existing ASE workflows.
 
----
-
-## Features
-
-* **Point group detection**: Detect common point groups for molecules based on their geometry.
-* **Molecule symmetrization**: Apply symmetry operations to molecules, aligning them to the detected point group.
-* **Get symmetry-inequivalent points**: Atoms are grouped if any symmetry operation (proper or improper) maps one onto the other.
-* **ASE Atoms-native workflow**: Directly integrates with ASE Atoms objects, enabling smooth use in existing workflows.
-
----
-
-## Supported point groups
-
-Point groups are classifications of molecules based on their symmetry operations.
-MinimalSym can detect the following common molecular point groups:
-
-- C₁, Cₛ, Cᵢ
-- Cₙ, Cₙᵥ, Cₙₕ
-- Dₙ, Dₙₕ, Dₙd
-- Sₙ
-- T, T_h, T_d
-- O, O_h
-- I, I_h
-- C0v, D0h
-
-Detection depends on the symmetry present in the input geometry
-and the tolerance used during symmetry detection.
+Internally, MinimalSym constructs symmetry operations and atom mappings,
+then projects atomic positions onto symmetry elements to enforce exact symmetry.
 
 ---
 
@@ -51,11 +28,6 @@ MinimalSym is a Python package that provides essential symmetry
 functionality for molecules represented as ASE `Atoms` objects.
 
 Follow the steps below to quickly set up and use MinimalSym with ASE.
-
-!!! note
-    MinimalSym does not require ASE as a dependency,
-    but public functions operate on `Atoms` objects from ASE. 
-    To use the examples below, ASE must be installed.
 
 ### Install the necessary libraries
 ```bash
@@ -78,11 +50,52 @@ print(mol_symmetric.info["pg"])
 ```
 
 For further examples and details on how to use MinimalSym,
-see the [Usage](usage.md) and [API](api/index.md) pages.
+see the [Usage](usage/examples.md) and [API](api/index.md) pages.
 
 ---
 
-## API
+## Features
+
+* **Point group detection:** Detect common point groups for molecules based on their geometry.
+* **Molecule symmetrization:** Apply symmetry operations to molecules, aligning them to the detected point group.
+* **Find symmetry-inequivalent atoms:** Atoms are grouped if any symmetry operation (proper or improper) maps one onto the other.
+* **ASE Atoms-native workflow:** Directly integrates with ASE Atoms objects, enabling smooth use in existing workflows.
+
+---
+
+## Scope and limitations
+
+- Works on **finite molecules** (no periodic structure support)
+- Uses **geometric tolerance-based** symmetry detection
+- Results depend on the chosen `geom_tol`
+
+---
+
+## Supported point groups
+
+Point groups are classifications of molecules based on their symmetry operations.
+MinimalSym can detect the following common molecular point groups:
+
+- C₁, Cₛ, Cᵢ
+- Cₙ, Cₙᵥ, Cₙₕ
+- Dₙ, Dₙₕ, Dₙd
+- Sₙ
+- T, T_h, T_d
+- O, O_h
+- I, I_h
+- C0v, D0h
+
+Detection depends on the symmetry present in the input geometry
+and the tolerance used during symmetry detection.
+
+---
+
+## API Overview
+
+- `symmetrize(mol, geom_tol=...) -> Atoms`
+- `get_point_group(mol, geom_tol=...) -> str`
+- `is_planar(mol, geom_tol=...) -> bool`
+- `get_inequivalent(mol, geom_tol=...) -> (unique, parent)`
 
 See the full [API Reference](api/index.md).
 
