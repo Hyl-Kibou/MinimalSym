@@ -343,6 +343,8 @@ def generate_cyclic_axes(static_axis:np.array, saxis:np.array, n:int, num_elem_g
     for ii in range(1, num_elem_generate):
         theta = 2 * np.pi * ii / n
         R = rotation_matrix(static_axis, theta)
-        rotated_axes[ii, :] = R @ saxis
+        rotated_axis = R @ saxis
+        #rotated_axis = rotated_axis - np.dot(rotated_axis, static_axis) * static_axis
+        rotated_axes[ii, :] = normalize(rotated_axis)
 
     return rotated_axes

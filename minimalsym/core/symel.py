@@ -4,7 +4,9 @@ from dataclasses import dataclass
 @dataclass(frozen=True, slots=True)
 class Symel():
     """
-    Symmetry element: a single symmetry operation with its matrix representation and metadata.
+    Symmetry element (SymEl):
+        Symmetry operation with its symbol, representative axis,
+        matrix representation and metadata.
 
     Parameters
     ----------

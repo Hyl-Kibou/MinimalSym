@@ -31,54 +31,30 @@ class RotationElement():
         return f"Axis: {self.axis} Order: {self.order}"
 
 
-# ── Rotation-set intersection ─────────────────────────────────────────────────
+# ── Rotation-set union ─────────────────────────────────────────────────
 
-@njit
-def _jit_intersect(a_axis, a_rots, b_axis, b_rots):
-    a_size = len(a_axis)
-    indexes = np.zeros(a_size, dtype=np.bool_)
-    a_to_b = np.zeros(a_size, dtype=np.int64)
-    b_size = len(b_axis)
-    for ii in range(a_size):
-        for jj in range(b_size):
-            if issame_axis(a_axis[ii], b_axis[jj]) and a_rots[ii] == b_rots[jj]:
-                indexes[ii] = True
-                a_to_b[ii] = jj
-                break
-    return indexes, a_to_b
-
-
-def _intersect(a, b):
-    """Return elements present in both lists (equality by axis and order)."""
-
-    if len(a) == 0 or len(b) == 0:
-        return []
-
-    a_axis = np.asarray([elem.axis for elem in a], dtype=np.float64)
-    b_axis = np.asarray([elem.axis for elem in b], dtype=np.float64)
-    a_rots = np.asarray([elem.order for elem in a], dtype=np.int64)
-    b_rots = np.asarray([elem.order for elem in b], dtype=np.int64)
-    indexes, a_to_b = _jit_intersect(a_axis, a_rots, b_axis, b_rots)
-    intersection = []
-    for ii, elem in enumerate(a):
-        if indexes[ii]:
-            intersection.append(RotationElement(normalize(elem.axis + b[a_to_b[ii]].axis), elem.order))
-    return intersection
-
-def _rotation_set_intersection(rotation_set):
-    """Return the intersection of all per-SEA rotation sets."""
+def _rotation_set_union(rotation_set:RotationElement) -> list[RotationElement]:
+    """Return the union of all per-SEA rotation sets."""
     out = rotation_set[0]
     if len(rotation_set) > 1:
         for i in range(1, len(rotation_set)):
-            out = _intersect(out, rotation_set[i])
-            if len(out) == 0:
-                break
+            out.extend(rotation_set[i][:])
+    out = unique_rotation_elements(out)
     return out
 
+# ── Rotation-set unique elements ────────────────────────────────────────────────────
+
+def unique_rotation_elements(elements):
+    """Return a list of RotationElement objects with duplicates removed, using __eq__."""
+    unique = []
+    for el in elements:
+        if not any(el == u for u in unique):  # uses __eq__
+            unique.append(el)
+    return unique
 
 # ── Rotation-set discovery ────────────────────────────────────────────────────
 
-def _find_rotation_sets(mol, SEAs):
+def _find_rotation_sets(mol, SEAs) -> list[list[RotationElement]]:
     """
     For each SEA, find the set of possible RotationElements.
 
@@ -175,11 +151,17 @@ def _find_rotations(mol, rotation_set):
                 break
         re = RotationElement(axis, 0)
         return [re]
-    rsi = _rotation_set_intersection(rotation_set)
+    rsu = _rotation_set_union(rotation_set)
     out = []
-    for i in rsi:
-        rmat = Cn(i.axis, i.order)
-        if transform_isequivalent(positions, masses, geom_tol, rmat):
+    for i in rsu:
+        rotation_is_valid = True
+        for suborder in range(2, i.order+1):
+            if i.order % suborder == 0:
+                rmat = Cn(i.axis, suborder)
+                if not transform_isequivalent(positions, masses, geom_tol, rmat):
+                    rotation_is_valid = False
+                    break
+        if rotation_is_valid:
             out.append(i)
     return out
 

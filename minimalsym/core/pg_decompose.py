@@ -707,7 +707,6 @@ def _check_O_point_group(mol, invertable:bool) -> list[PointGroupResult]:
     """
     try:
         c4_axes = _find_C4s_for_Oh(mol)
-        print(c4_axes)
         paxis = c4_axes[0]
         saxis = c4_axes[1]
         if invertable:

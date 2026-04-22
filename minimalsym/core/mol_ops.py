@@ -74,6 +74,11 @@ def distance_matrix(positions):
     return dm
 
 @njit
+def distance_matrix_pair(posA, posB):
+    diff = posA[:, None, :] - posB[None, :, :]
+    return np.sum(diff**2, axis=-1)
+
+@njit
 def _jit_find_SEAs(size, positions, geom_tol):
     dm = distance_matrix(positions)
     # Pre-sort each row once to avoid storing ragged argsort arrays

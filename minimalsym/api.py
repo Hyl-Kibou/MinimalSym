@@ -7,8 +7,8 @@ from dataclasses import dataclass
 
 from .core.pg_detect import find_point_group, mol_is_planar
 from .core.symtext import Symtext
-from .core.mol_ops import find_SEAs, _jit_calcmoit
-from .core.constants import SYMMETRIZED_TOL
+from .core.mol_ops import _jit_calcmoit
+from .core.constants import PRINT_WARNINGS
 
 from .core.mol_ops import get_SEAs_from_atom_map
 from .core.pg_decompose import _decompose_point_group, _find_pg_score, _unique_point_group, _check_O_point_group, _check_general_point_group
@@ -139,9 +139,17 @@ def _estimate_eigen_tol(positions: np.array, masses:np.array, geom_tol:float, fa
     eigen_tol = factor * geom_tol / np.sqrt(scale / np.sum(masses))
     return eigen_tol
 
+# ── Global variable change ─────────────────────────────────────────────────────
+
+def _change_global_variable(quiet: bool):
+    global PRINT_WARNINGS
+
+    # If quiet is True, PRINT_WARNINGS is disabled.
+    PRINT_WARNINGS = not quiet
+
 # ── Point group & planarity ────────────────────────────────────────────────────
 
-def get_point_group(mol: Atoms, geom_tol: float = 0.05, eigen_tol: float|None = None) -> str:
+def get_point_group(mol: Atoms, geom_tol: float = 0.05, eigen_tol: float|None = None, quiet: bool = True) -> str:
     """
     Determine the point group of a molecule.
 
@@ -154,6 +162,8 @@ def get_point_group(mol: Atoms, geom_tol: float = 0.05, eigen_tol: float|None = 
     eigen_tol : float, optional
         Relative tolerance for eigenvalues (default None,
         internal worker will determine an appropriate float).
+    quiet: bool
+        If `True` warnings and debug messages will be disabled.
 
     Returns
     -------
@@ -169,6 +179,7 @@ def get_point_group(mol: Atoms, geom_tol: float = 0.05, eigen_tol: float|None = 
     RuntimeError
         point-group detection failed internally.
     """
+    _change_global_variable(quiet)
     _validate_mol(mol, geom_tol, min_atoms=1)
     mol = mol.copy()
     mol.translate(-mol.get_center_of_mass())
@@ -264,7 +275,7 @@ def _union_find_pass(atom_map, parent, symel_indices):
             parent[idx] = owner
 
 
-def get_inequivalent(mol_in: Atoms, geom_tol: float = 0.3, eigen_tol: float|None = None) -> tuple[np.ndarray, np.ndarray]:
+def get_inequivalent(mol_in: Atoms, geom_tol: float = 0.3, eigen_tol: float|None = None, quiet: bool = True) -> tuple[np.ndarray, np.ndarray]:
     """
     Find symmetry-inequivalent atoms using all symmetry operations.
 
@@ -280,6 +291,8 @@ def get_inequivalent(mol_in: Atoms, geom_tol: float = 0.3, eigen_tol: float|None
     eigen_tol : float, optional
         Relative tolerance for eigenvalues (default None,
         internal worker will determine an appropriate float).
+    quiet: bool
+        If `True` warnings and debug messages will be disabled.
 
     Returns
     -------
@@ -294,6 +307,7 @@ def get_inequivalent(mol_in: Atoms, geom_tol: float = 0.3, eigen_tol: float|None
     ValueError
     RuntimeError
     """
+    _change_global_variable(quiet)
     _validate_mol(mol_in, geom_tol, min_atoms=1)
     mol_in = mol_in.copy()
     mol_in.translate(-mol_in.get_center_of_mass())
@@ -367,9 +381,9 @@ def _project_atom(mol, atom_i, asym_symtext):
     Searches for a non-identity symel g such that atom_map[atom_i, g] == atom_i,
     then applies the appropriate geometric projection:
 
+    - i / S_n   : place the atom at the origin.
     - C_n axis  : keep only the projection along the axis vector.
     - sigma plane : subtract the normal component (project into the plane).
-    - i / S_n   : place the atom at the origin.
 
     Parameters
     ----------
@@ -401,31 +415,30 @@ def _project_atom(mol, atom_i, asym_symtext):
             raise Exception(f"Unexpected symmetry element type: '{sym.symbol}'")
 
 
-def _map_sea_from_representative(mol, sea, atom_i, asym_symtext):
+def _force_symmetry_from_representative(mol, atom_i, asym_symtext):
     """
-    Map the remaining SEA atoms from the (already projected) representative.
+    Map the remaining symmetrically equivalent atoms from the
+    (already projected) representative.
 
-    For each atom_j in sea.subset[1:], finds the symel g that sends atom_i
-    to atom_j and applies its rotation matrix.
+    For each symel_g in symels (except identity operation),
+    atom_j is the atom mapped to atom_i transformed by symel_g.
+    atom_j is assigned the position of atom_i transformed by symel_g.
 
     Parameters
     ----------
     mol : ase.Atoms
         Molecule being symmetrized (modified in-place).
-    sea : SEA
     atom_i : int
         Index of the (already projected) SEA representative.
     asym_symtext : Symtext
     """
-    for atom_j in sea.subset[1:]:
-        for g in range(1, asym_symtext.order):
-            if atom_j == asym_symtext.atom_map[atom_i, g]:
-                mol.positions[atom_j, :] = np.dot(
-                    asym_symtext.symels[g].rrep, mol.positions[atom_i, :]
-                )
-                break
+    for g in range(1, asym_symtext.order):
+        atom_j = asym_symtext.atom_map[atom_i, g]
+        mol.positions[atom_j, :] = np.dot(
+            asym_symtext.symels[g].rrep, mol.positions[atom_i, :]
+        )
 
-def symmetrize(mol_in: Atoms, geom_tol: float = 0.05, eigen_tol: float|None = None) -> Atoms:
+def symmetrize(mol_in: Atoms, geom_tol: float = 0.05, eigen_tol: float|None = None, quiet: bool = True) -> Atoms:
     """
     Symmetrize the geometry of a molecule to exact point-group symmetry.
 
@@ -467,6 +480,8 @@ def symmetrize(mol_in: Atoms, geom_tol: float = 0.05, eigen_tol: float|None = No
     eigen_tol : float, optional
         Relative tolerance for eigenvalues (default None,
         internal worker will determine an appropriate float).
+    quiet: bool
+        If `True` warnings and debug messages will be disabled.
 
     Returns
     -------
@@ -480,12 +495,11 @@ def symmetrize(mol_in: Atoms, geom_tol: float = 0.05, eigen_tol: float|None = No
     Exception
         Re-raises unexpected symmetry element types.
     """
+    _change_global_variable(quiet)
     mol_in = mol_in.copy()
 
     mol_in.translate(-mol_in.get_center_of_mass())
     _set_tolerances(mol_in, geom_tol, eigen_tol)
-
-    seas = find_SEAs(mol_in)
 
     try:
         asym_symtext = Symtext.from_molecule(mol_in)
@@ -496,6 +510,8 @@ def symmetrize(mol_in: Atoms, geom_tol: float = 0.05, eigen_tol: float|None = No
 
     mol = asym_symtext.mol
 
+    seas = get_SEAs_from_atom_map(asym_symtext.atom_map)
+
     for sea in seas:
         atom_i = sea.subset[0]
 
@@ -504,9 +520,8 @@ def symmetrize(mol_in: Atoms, geom_tol: float = 0.05, eigen_tol: float|None = No
             continue
 
         _project_atom(mol, atom_i, asym_symtext)
-        _map_sea_from_representative(mol, sea, atom_i, asym_symtext)
+        _force_symmetry_from_representative(mol, atom_i, asym_symtext)
 
-    mol.info["geom_tol"] = SYMMETRIZED_TOL
     return mol
 
 # ── Get fan-out of possible symmetries ─────────────────────────────────────
@@ -551,7 +566,7 @@ class SymmetryResult:
     pg: str
     rmsd: float
 
-def generate_symmetry_candidates(mol_in: Atoms, geom_tol: float = 0.05, eigen_tol: float|None = None, sort_by:int = 0) -> list[SymmetryResult]:
+def generate_symmetry_candidates(mol_in: Atoms, geom_tol: float = 0.05, eigen_tol: float|None = None, sort_by:int = 0, quiet: bool = True) -> list[SymmetryResult]:
     """
     Generate symmetry-consistent geometries compatible with a detected point group.
 
@@ -604,6 +619,8 @@ def generate_symmetry_candidates(mol_in: Atoms, geom_tol: float = 0.05, eigen_to
             then by RMSD (ascending).
 
         - 1 := sort by RMSD (ascending), then by point group "size" (descending).
+    quiet: bool
+        If `True` warnings and debug messages will be disabled.
 
     Returns
     -------
@@ -619,6 +636,7 @@ def generate_symmetry_candidates(mol_in: Atoms, geom_tol: float = 0.05, eigen_to
         Propagates unexpected exceptions encountered during projection
         or mapping.
     """
+    _change_global_variable(quiet)
     mol_in = mol_in.copy()
 
     mol_in.translate(-mol_in.get_center_of_mass())
@@ -672,7 +690,7 @@ def generate_symmetry_candidates(mol_in: Atoms, geom_tol: float = 0.05, eigen_to
                 continue
 
             _project_atom(curr_mol, atom_i, curr_asym_symtext)
-            _map_sea_from_representative(curr_mol, sea, atom_i, curr_asym_symtext)
+            _force_symmetry_from_representative(curr_mol, sea, atom_i, curr_asym_symtext)
 
         rmsd = _get_error(transform(mol.positions, curr_asym_symtext.rotate_to_std), curr_mol.positions)
 

@@ -11,7 +11,6 @@ from numba import njit
 
 from .symel import Symel
 
-
 # ── JIT kernels ───────────────────────────────────────────────────────────────
 
 @njit
@@ -24,7 +23,6 @@ def _jit_where_you_go(positions, geom_tol, atom, rrep):
         if (dist[0]*dist[0] + dist[1]*dist[1] + dist[2]*dist[2]) < tol2:
             return i
     return np.int64(-1)
-
 
 @njit
 def _jit_get_atom_mapping(positions, geom_tol, rreps):
@@ -60,7 +58,6 @@ def _where_you_go(mol, atom, symel):
     w = _jit_where_you_go(mol.positions, mol.info["geom_tol"], atom, symel.rrep)
     return w if w != -1 else None
 
-
 def _get_atom_mapping(mol, symels):
     """
     Build the (n_atoms × n_symels) atom permutation map for non-linear groups.
@@ -81,16 +78,15 @@ def _get_atom_mapping(mol, symels):
         If any atom fails to map under a symmetry operation.
     """
     rreps = np.array([s.rrep for s in symels])
-    amap = _jit_get_atom_mapping(mol.positions, mol.info["geom_tol"], rreps)
+    amap = _jit_get_atom_mapping(mol.positions, mol.info["geom_tol"]*1.1, rreps)
     failed = np.argwhere(amap == -1)
     if len(failed) > 0:
         atom, s = int(failed[0, 0]), int(failed[0, 1])
         raise Exception(
             f"Atom {atom} not mapped to another atom "
-            f"under symel {symels[s]}\nPositions: {mol.positions}"
+            f"under symel {symels[s]}\nPositions: {mol.positions}\nRreps: {rreps[s]}"
         )
     return amap
-
 
 def _get_linear_atom_mapping(mol, pg):
     """

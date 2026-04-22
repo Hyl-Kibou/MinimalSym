@@ -21,7 +21,7 @@ import warnings
 
 from .sym_ops import rotation_matrix, inversion_matrix, Sn, normalize, inertia_isclose, generate_cyclic_axes, Cn, reflection_matrix
 from .mol_ops import calcmoit, transform_isequivalent, find_SEAs
-from .constants import IH_C2_C3_ANGLE, IH_ANGLE_TOL
+from .constants import IH_C2_C3_ANGLE, IH_ANGLE_TOL, PRINT_WARNINGS
 
 from .rotation_detection import (
     _find_rotation_sets, _find_rotations, _linear_mol_axis,
@@ -74,13 +74,15 @@ def _classify_spherical_top(mol, positions, masses, geom_tol):
     seas = find_SEAs(mol)
     num_C2 = _num_C2(mol, seas)
     if num_C2 is None:
-        warnings.warn("Molecule was wrongly classified as a spherical top, (num_C2 is None), probably due to high eigen_tol. " \
-            "Process will continue as general symmetry.")
+        if PRINT_WARNINGS:
+            warnings.warn("Molecule was wrongly classified as a spherical top, (num_C2 is None), probably due to high eigen_tol. " \
+                "Process will continue as general symmetry.")
         return _classify_general(mol, positions, masses, geom_tol)
     n, axes = num_C2
     invertable = transform_isequivalent(positions, masses, geom_tol, inversion_matrix())
+    is_spherical = True
 
-    if n >= 16:
+    if n >= 15:
         # Icosahedral: paxis = C5 axis, saxis = C2 axis from golden-ratio geometry.
         try:
             c2_axis = axes[0]
@@ -95,53 +97,45 @@ def _classify_spherical_top(mol, positions, masses, geom_tol):
             theta = np.arccos(phi / np.sqrt(1 + phi**2))
             paxis = np.dot(rotation_matrix(saxis, theta), c2_axis)
             pg = "Ih" if invertable else "I"
-        except:
-            warnings.warn(f"Molecule was wrongly classified as a spherical top, (n is {n}), probably due to high eigen_tol or geom_tol. " \
-                "Process will continue as general symmetry.")
-            return _classify_general(mol, positions, masses, geom_tol)
-    elif n == 15:
-        # Icosahedral: paxis = C5 axis, saxis = C2 axis from golden-ratio geometry.
-        c2_axis = axes[0]
-        c3s = _find_C3s_for_Ih(mol)
-        saxis = np.zeros(3)
-        for c3 in c3s:
-            if np.isclose(np.arccos(abs(np.dot(c3, c2_axis))), IH_C2_C3_ANGLE, atol=IH_ANGLE_TOL):
-                taxis = normalize(np.cross(c3, c2_axis))
-                saxis = normalize(np.cross(taxis, c2_axis))
-                break
-        phi = (1 + np.sqrt(5.0)) / 2
-        theta = np.arccos(phi / np.sqrt(1 + phi**2))
-        paxis = np.dot(rotation_matrix(saxis, theta), c2_axis)
-        pg = "Ih" if invertable else "I"
-
+        except RuntimeError:
+            is_spherical = False
     elif n == 9:
         # Octahedral: paxis and saxis are two orthogonal C4 axes.
-        c4s = _find_C4s_for_Oh(mol)
-        paxis, saxis = c4s[0], c4s[1]
-        pg = "Oh" if invertable else "O"
+        try:
+            c4s = _find_C4s_for_Oh(mol)
+            paxis, saxis = c4s[0], c4s[1]
+            pg = "Oh" if invertable else "O"
+        except RuntimeError:
+            is_spherical = False
 
     elif n == 3:
-        # Tetrahedral (n == 3): use two of the three C2 axes.
-        paxis, saxis = axes[0], axes[1]
+        try:
+            # Tetrahedral (n == 3): use two of the three C2 axes.
+            paxis, saxis = axes[0], axes[1]
 
-        # Detect reflection symmetry (any sigma plane)
-        sigmav_chk, _ = _is_there_sigmav(mol, seas, paxis)
-        sigmah_chk = _is_there_sigmah(mol, paxis)
+            # Detect reflection symmetry (any sigma plane)
+            sigmav_chk, _ = _is_there_sigmav(mol, seas, paxis)
+            sigmah_chk = _is_there_sigmah(mol, paxis)
 
-        # Detect improper rotation S4 (characteristic of Td/Th)
-        S4 = Sn(paxis, 4)
-        has_S4 = transform_isequivalent(positions, masses, geom_tol, S4)
+            # Detect improper rotation S4 (characteristic of Td/Th)
+            S4 = Sn(paxis, 4)
+            has_S4 = transform_isequivalent(positions, masses, geom_tol, S4)
 
-        if invertable:
-            pg = "Th"
-        # elif sigmav_chk or sigmah_chk or has_S4:
-        elif has_S4: # Must have S4
-            pg = "Td"
-        else:
-            pg = "T"
+            if invertable:
+                pg = "Th"
+            # elif sigmav_chk or sigmah_chk or has_S4:
+            elif has_S4: # Must have S4
+                pg = "Td"
+            else:
+                pg = "T"
+        except RuntimeError:
+            is_spherical = False
     else:
-        warnings.warn(f"Molecule was wrongly classified as a spherical top, (n is {n}), probably due to high eigen_tol or geom_tol. " \
-            "Process will continue as general symmetry.")
+        is_spherical = False
+    if not is_spherical:
+        if PRINT_WARNINGS:
+            warnings.warn(f"Molecule was wrongly classified as a spherical top, (n is {n}), probably due to high eigen_tol or geom_tol. " \
+                "Process will continue as general symmetry.")
         return _classify_general(mol, positions, masses, geom_tol)
 
     return PointGroupResult(pg=pg, paxis=paxis, saxis=saxis)
@@ -166,7 +160,7 @@ def _validate_all_sigmav(positions, masses, geom_tol, paxis, sigmav, Cn_order):
     """
     sigmav_axes = generate_cyclic_axes(paxis, sigmav, Cn_order)
     for sigmav_axis in sigmav_axes:
-        if not transform_isequivalent(positions, masses, geom_tol, reflection_matrix(sigmav_axis)):
+        if not transform_isequivalent(positions, masses, geom_tol, reflection_matrix(normalize(sigmav_axis))):
             return False
     return True
 
@@ -181,9 +175,11 @@ def _classify_subfamily(mol, seas, positions, masses, geom_tol, paxis, Cn_order)
     sigmah_chk = _is_there_sigmah(mol, paxis)
 
     if ortho_c2_chk:
+        c2_ortho = normalize(c2_ortho - np.dot(c2_ortho, paxis) * paxis)
         ortho_c2_chk = _validate_all_c2_ortho(positions, masses, geom_tol, paxis, c2_ortho, Cn_order)
 
     if sigmav_chk:
+        sigmav = normalize(sigmav - np.dot(sigmav, paxis) * paxis)
         sigmav_chk = _validate_all_sigmav(positions, masses, geom_tol, paxis, sigmav, Cn_order)
 
     if ortho_c2_chk:

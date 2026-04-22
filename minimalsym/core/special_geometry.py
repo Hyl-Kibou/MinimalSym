@@ -11,6 +11,7 @@ from numba import njit
 
 from .sym_ops import Cn, normalize, float_isclose, issame_axis
 from .mol_ops import transform_isequivalent
+from .constants import PRINT_WARNINGS
 
 
 # ── Icosahedral geometry ──────────────────────────────────────────────────────
@@ -70,18 +71,22 @@ def _jit_find_C3s_for_Ih(size, positions, masses, geom_tol):
                         c3 = Cn(c3_axis, 3)
                         if transform_isequivalent(positions, masses, geom_tol, c3):
                             c3_axes.append(c3_axis)
-    unique_axes = [c3_axes[0]]
-    for i in c3_axes:
-        check = True
-        for j in unique_axes:
-            if issame_axis(i, j):
-                check = False
-                break
-        if check:
-            unique_axes.append(i)
-    chk = len(unique_axes)
+    if len(c3_axes) >= 1:
+        unique_axes = [c3_axes[0]]
+        for i in c3_axes:
+            check = True
+            for j in unique_axes:
+                if issame_axis(i, j):
+                    check = False
+                    break
+            if check:
+                unique_axes.append(i)
+        chk = len(unique_axes)
+    else:
+        chk = 0
     if chk != 10:
-        print("DEBUG: C3 axes count:", chk)
+        if PRINT_WARNINGS:
+            print("DEBUG: C3 axes count:", chk)
         raise RuntimeError(
             "Unexpected number of C3 axes for Ih point group, expected 10."
         )
@@ -218,7 +223,8 @@ def _jit_find_C4s_for_Oh(size, positions, masses, geom_tol):
     else:
         chk = 0
     if chk != 3:
-        print("DEBUG: c4 axes count", chk)
+        if PRINT_WARNINGS:
+            print("DEBUG: c4 axes count", chk)
         raise RuntimeError(
             "Unexpected number of C4 axes for Oh point group, expected 3."
         )
