@@ -690,7 +690,7 @@ def generate_symmetry_candidates(mol_in: Atoms, geom_tol: float = 0.05, eigen_to
                 continue
 
             _project_atom(curr_mol, atom_i, curr_asym_symtext)
-            _force_symmetry_from_representative(curr_mol, sea, atom_i, curr_asym_symtext)
+            _force_symmetry_from_representative(curr_mol, atom_i, curr_asym_symtext)
 
         rmsd = _get_error(transform(mol.positions, curr_asym_symtext.rotate_to_std), curr_mol.positions)
 
