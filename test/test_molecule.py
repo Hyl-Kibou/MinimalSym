@@ -3,7 +3,7 @@ import os
 import numpy as np
 from copy import deepcopy
 import ase
-from ._test_helper import read_file
+from ._helper import read_file
 
 mass_tol = 1e-8
 coord_tol = 1e-6

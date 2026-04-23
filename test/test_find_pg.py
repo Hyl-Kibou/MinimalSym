@@ -1,7 +1,7 @@
 import os
 import minimalsym
 import pytest
-from ._test_helper import read_file
+from ._helper import read_file
 
 PATH = os.path.dirname(os.path.realpath(__file__))
 

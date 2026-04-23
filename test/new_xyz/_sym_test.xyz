@@ -1,5 +1,5 @@
 9
-Properties=species:S:1:pos:R:3 37.62792475=T N#CN(C)C#N=T tol=1e-12 pg=Cs pbc="F F F"
+Properties=species:S:1:pos:R:3 37.62792475=T N#CN(C)C#N=T geom_tol=0.05 eigen_tol=0.057215743342814075 pg=Cs pbc="F F F"
 N       -0.85949102      -0.19326731       2.18861740
 C       -0.32917437      -0.09130464       1.16404729
 N        0.33633766       0.02929123       0.00000000

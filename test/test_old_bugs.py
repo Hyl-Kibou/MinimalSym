@@ -5,7 +5,7 @@ import os
 import numpy as np
 import minimalsym
 from ase.io import read
-from ._test_helper import read_file
+from ._helper import read_file
 
 PATH = os.path.dirname(os.path.realpath(__file__))
 
@@ -23,6 +23,7 @@ def test_formaldehyde():
     assert (np.isclose(paxis, z).all() or np.isclose(paxis, -z).all())
     assert (np.isclose(saxis, x).all() or np.isclose(saxis, -x).all())
 
+# Linear molecules could collapse to center.
 def test_collapse():
     file_path = os.path.join(PATH, "new_xyz", f"Malo_CC2Si2.xyz")
     mol = read(file_path)
@@ -53,3 +54,17 @@ def test_c0v():
     assert smol.info["pg"]=="C0v", f"Wrong point group, got: {smol.info["pg"]} expected: C0v"
     for ii in range(len(smol.positions)):
         assert np.allclose(smol.positions[ii][:2], np.zeros(2), atol=0., rtol=0.), f"Positions not aligned with z-axis, got: {smol.positions}{smol.positions[ii][:2]} expected: {np.zeros(2)}"
+
+# Some molecules failed atom mapping for `geom_tol` = 0.01. Caused by:
+# - no orthogonalization check for ortho c2 axes and vertical mirror planes
+# - numerical error
+# - not checking suborder rotations
+def test_different_geom_tol():
+    file_path1 = os.path.join(PATH, "new_xyz", f"variate_geom_tol.xyz")
+
+    file_path_list = [file_path1]
+
+    for path in file_path_list:
+        for tol in range(1, 100, 5):
+            mol = read(path)
+            smol = minimalsym.symmetrize(mol, geom_tol=tol/100)
