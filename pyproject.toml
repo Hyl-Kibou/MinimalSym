@@ -31,6 +31,7 @@ docs = [
   "mkdocs",
   "mkdocs-material",
   "mkdocstrings[python]"
+  "mkdocs-glightbox"
 ]
 dev = [
     "build",

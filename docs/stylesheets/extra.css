@@ -14,3 +14,12 @@
   --md-accent-bg-color--light:         #ff00aa;
   */
 }
+
+[data-md-color-scheme="custom-theme"] img[src$="#only-dark"],
+[data-md-color-scheme="custom-theme"] img[src$="#gh-dark-mode-only"] {
+  display: none;
+}
+
+[data-md-color-scheme="slate"] .gslide-image img {
+  background: #1e1e21 !important;
+}

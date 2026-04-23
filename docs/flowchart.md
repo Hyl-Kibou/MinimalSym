@@ -8,4 +8,5 @@ It shows how symmetry descriptors (Symtext) are constructed,
 symmetry-equivalent atom groups (SEAs) are processed, projected onto
 symmetry elements, and reconstructed to enforce symmetry.
 
-![Flowchart of symmetrize function](img/Minimalsym.drawio.png)
+![Flowchart of symmetrize function](img/symmetrize_light.webp#only-light){ .on-glb }
+![Flowchart of symmetrize function](img/symmetrize_dark.webp#only-dark){ .on-glb }

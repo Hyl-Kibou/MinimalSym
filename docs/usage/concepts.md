@@ -48,7 +48,8 @@ Larger tolerances make the algorithm more permissive when identifying
 degeneracies in the moments of inertia, which affects molecular
 classification.
 
-When using `symmetrize()`, `get_point_group()`, `get_inequivalent()`,
+When using `symmetrize()`, `get_point_group()`, `get_inequivalent()`
+and `generate_symmetry_candidates()`
 the tolerance is set via the `eigen_tol` argument. If not specified,
 the default value is `None` and a function will automatically try to
 determine an adequate float given the input molecule and geometric
@@ -60,6 +61,18 @@ variation of the moments of inertia.
 Roughly, `eigen_tol ∝ geom_tol / molecular_size`, so larger molecules
 require tighter relative tolerances.
 
+---
+
+## Warnings and debug output
+
+When using [`symmetrize()`][minimalsym.api.symmetrize], [`get_point_group()`][minimalsym.api.get_point_group], [`get_inequivalent()`][minimalsym.api.get_inequivalent], and
+[`generate_symmetry_candidates`][minimalsym.api.generate_symmetry_candidates], warnings and debug output may be triggered.
+Printing is controlled by the global variable `PRINT_WARNINGS`.
+
+
+The user can control this behavior with the optional parameter `quiet` in the
+aforementioned functions. When `quiet` is set to True, `PRINT_WARNINGS` is
+set to False, disabling all warnings and debug output.
 ---
 
 ## Core Data Structures
