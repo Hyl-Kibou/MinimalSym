@@ -2,7 +2,7 @@ import numpy as np
 from .constants import NUMERICAL_TOL as global_tol
 from numba import njit
 
-@njit
+@njit(cache=True)
 def rotation_matrix(axis, theta):
     """
     Create rotation matrix about an axis by theta in radians.
@@ -26,7 +26,7 @@ def rotation_matrix(axis, theta):
     rodriguesrm = np.eye(3) + np.sin(theta)*kmat1 + (1.0 - np.cos(theta))*kmat2
     return rodriguesrm
 
-@njit
+@njit(cache=True)
 def reflection_matrix(axis):
     """
     Create reflection matrix about a plane defined by its normal vector.
@@ -51,7 +51,7 @@ def reflection_matrix(axis):
                 M[j,i] = M[i,j]
     return M
 
-@njit
+@njit(cache=True)
 def inversion_matrix():
     """
     Create cartesian inversion matrix.
@@ -63,7 +63,7 @@ def inversion_matrix():
     """
     return -1*np.eye(3)
 
-@njit
+@njit(cache=True)
 def Cn(axis, n):
     """
     Wrapper around rotation_matrix for producing a C_n rotation about axis.
@@ -83,7 +83,7 @@ def Cn(axis, n):
     theta = 2*np.pi/n
     return rotation_matrix(axis, theta)
 
-@njit
+@njit(cache=True)
 def Sn(axis, n):
     """
     Improper rotation S_n about an axis.
@@ -102,19 +102,19 @@ def Sn(axis, n):
     """
     return np.dot(reflection_matrix(axis), Cn(axis, n))
 
-@njit
+@njit(cache=True)
 def vec_norm_axis(v):
     """Compute Euclidean norm (Numba-compatible)."""
     # Vectorize the norm calculation over rows
     return np.sqrt(np.sum(v**2, axis=1))
 
-@njit
+@njit(cache=True)
 def vec_norm(v):
     """Compute Euclidean norm (Numba-compatible)."""
     #return np.sqrt(np.sum(v**2))
     return np.sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2])
 
-@njit
+@njit(cache=True)
 def normalize(a):
     """
     Normalize vector a to unit length, return zero vector shape(n, ) if the input vector is of zero length.
@@ -134,12 +134,12 @@ def normalize(a):
         return np.zeros(3)
     return a / n
 
-@njit
+@njit(cache=True)
 def float_isclose(a: float, b: float, rtol:float=1e-05, atol:float=1e-08) -> bool:
     """Compare two floats (Numba-compatible)."""
     return np.abs(a - b) <= (atol + rtol * max(np.abs(b), np.abs(a)))
 
-@njit
+@njit(cache=True)
 def inertia_isclose(a: float, b: float, rtol:float=1e-05, atol:float=1e-08) -> bool:
     """Compare two inertia (Numba-compatible)."""
     if a == 0.0 or b == 0.0:
@@ -147,7 +147,7 @@ def inertia_isclose(a: float, b: float, rtol:float=1e-05, atol:float=1e-08) -> b
     else:
         return float_isclose(a, b, rtol=rtol, atol=0.0)
 
-@njit
+@njit(cache=True)
 def issame_axis(a, b, tol=global_tol):
     """
     Return True if vectors a and b are colinear within the global tolerance.
@@ -175,7 +175,7 @@ def issame_axis(a, b, tol=global_tol):
     d = np.abs(np.dot(A_vector, B_vector))
     return float_isclose(d, 1.0, atol=tol)
 
-@njit
+@njit(cache=True)
 def isfactor(n, a):
     """
     Return True if a divides n.
@@ -194,7 +194,7 @@ def isfactor(n, a):
     """
     return n % a == 0
 
-@njit
+@njit(cache=True)
 def reduce(n, i):
     """
     Divide n and i by their greatest common divisor g.
@@ -212,7 +212,7 @@ def reduce(n, i):
     g = _gcd(n, i)
     return n//g, i//g
 
-@njit
+@njit(cache=True)
 def _gcd(A, B):
     """
     Euclid algorithm for finding the greatest common divisor between A and B.
@@ -237,7 +237,7 @@ def _gcd(A, B):
         r = a % b
         return _gcd(b, r)
 
-@njit
+@njit(cache=True)
 def unique_sorted(arr):
     """
     Return the sorted unique elements of a 1D array.
@@ -279,7 +279,7 @@ def unique_sorted(arr):
 
     return out[:count]
 
-@njit
+@njit(cache=True)
 def canonical(v):
     """
     Returns canonical form of vector.
@@ -304,7 +304,7 @@ def canonical(v):
         break
     return v
 
-@njit
+@njit(cache=True)
 def generate_cyclic_axes(static_axis:np.ndarray, saxis:np.ndarray, n:int, num_elem_generate:int = -1):
     """
     Generate a set of axes by rotating a reference axis around a fixed axis.

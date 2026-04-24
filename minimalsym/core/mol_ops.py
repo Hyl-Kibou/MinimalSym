@@ -28,7 +28,7 @@ class SEA():
             return False
         return self.label == other.label and (self.subset == other.subset).all() and (self.axis == other.axis).all()
 
-@njit
+@njit(cache=True)
 def transform(positions: "np.ndarray", M: "np.ndarray") -> "np.ndarray":
     """
     Transform coordinates of molecule by matrix M and return new positions.
@@ -48,7 +48,7 @@ def transform(positions: "np.ndarray", M: "np.ndarray") -> "np.ndarray":
     return np.dot(positions, np.transpose(M))
 
 
-@njit
+@njit(cache=True)
 def distance_matrix(positions):
     """
     Calculate the interatomic distance matrix as all pairwise distances between atoms.
@@ -73,12 +73,12 @@ def distance_matrix(positions):
             dm[j,i] = dm[i,j]
     return dm
 
-@njit
+@njit(cache=True)
 def distance_matrix_pair(posA, posB):
     diff = posA[:, None, :] - posB[None, :, :]
     return np.sum(diff**2, axis=-1)
 
-@njit
+@njit(cache=True)
 def _jit_find_SEAs(size, positions, geom_tol):
     dm = distance_matrix(positions)
     # Pre-sort each row once to avoid storing ragged argsort arrays
@@ -182,7 +182,7 @@ def get_SEAs_from_atom_map(atom_map):
 
     return SEAs
 
-@njit
+@njit(cache=True)
 def _isequivalent(A_masses, A_positions, B_masses, B_positions, geom_tol):
     matched = np.zeros(len(B_masses), dtype=np.bool_)
     tol2 = geom_tol*geom_tol
@@ -202,12 +202,12 @@ def _isequivalent(A_masses, A_positions, B_masses, B_positions, geom_tol):
         return True
     return False
 
-@njit
+@njit(cache=True)
 def transform_isequivalent(positions, masses, geom_tol, matrix):
     positions_B = transform(positions, matrix)
     return _isequivalent(masses, positions, masses, positions_B, geom_tol)
 
-@njit
+@njit(cache=True)
 def _jit_calcmoit(positions, masses):
     I = np.zeros((3, 3))
     for i in range(3):

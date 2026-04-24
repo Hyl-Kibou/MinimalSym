@@ -13,7 +13,7 @@ from .symel import Symel
 
 # ── JIT kernels ───────────────────────────────────────────────────────────────
 
-@njit
+@njit(cache=True)
 def _jit_where_you_go(positions, geom_tol, atom, rrep):
     """Return the index of the atom that *atom* maps to under *rrep*."""
     ratom = np.dot(rrep, positions[atom, :].T)
@@ -24,7 +24,7 @@ def _jit_where_you_go(positions, geom_tol, atom, rrep):
             return i
     return np.int64(-1)
 
-@njit
+@njit(cache=True)
 def _jit_get_atom_mapping(positions, geom_tol, rreps):
     """Build the full (n_atoms × n_symels) permutation map."""
     natoms = len(positions)

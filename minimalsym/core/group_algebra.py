@@ -29,7 +29,7 @@ def _mult_sigmahCnm(m, n):
     """Return the canonical power and axis order of sigma_h * C_n^m."""
     return _omega(m, n)
 
-@njit
+@njit(cache=True)
 def _mult_CSC2sigma(m, n, pre, post):
     """Return the symbol of the product of a principal-axis element with a C_2' or sigma element."""
     if pre == "C":
