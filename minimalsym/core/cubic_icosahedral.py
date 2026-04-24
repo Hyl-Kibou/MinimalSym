@@ -20,7 +20,7 @@ def _icosahedron_vectors():
 
     Returns
     -------
-    : tuple(List[np.array], List[np.array], List[np.array])
+    : tuple(List[np.ndarray], List[np.ndarray], List[np.ndarray])
         Face axes (6), vertex axes (10), and edge-center axes (15).
     """
     s5   = np.sqrt(5)

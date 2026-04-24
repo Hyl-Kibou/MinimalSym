@@ -178,7 +178,7 @@ def _linear_mol_axis(mol):
 
     Returns
     -------
-    : np.array
+    : np.ndarray
         shape (3,)
     """
     coords = mol.positions - mol.positions.mean(axis=0)
@@ -307,7 +307,7 @@ def _find_a_c2(mol, SEAs):
 
     Returns
     -------
-    np.array, shape (3,) or None
+    np.ndarray, shape (3,) or None
     """
     positions = mol.positions
     masses = mol.get_masses()
@@ -339,11 +339,11 @@ def _is_there_ortho_c2(mol, SEAs, paxis):
     ----------
     mol : ase.Atoms
     SEAs : List[SEA]
-    paxis : np.array, shape (3,)
+    paxis : np.ndarray, shape (3,)
 
     Returns
     -------
-    tuple(bool, np.array or None)
+    tuple(bool, np.ndarray or None)
     """
     ortho_tol = mol.info["geom_tol"] / _compute_R_max(mol.positions, paxis) * 1.10
     positions = mol.positions
@@ -385,7 +385,7 @@ def _num_C2(mol, SEAs):
 
     Returns
     -------
-    tuple(int, List[np.array]) or None
+    tuple(int, List[np.ndarray]) or None
     """
     axes = []
     positions = mol.positions

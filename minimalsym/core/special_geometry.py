@@ -103,7 +103,7 @@ def _find_C3s_for_Ih(mol):
 
     Returns
     -------
-    List[np.array], shape (3,)        
+    List[np.ndarray], shape (3,)
     """
     return _jit_find_C3s_for_Ih(len(mol), mol.positions, mol.get_masses(), mol.info["geom_tol"])
 
@@ -241,6 +241,6 @@ def _find_C4s_for_Oh(mol):
 
     Returns
     -------
-    List[np.array], shape (3,)
+    List[np.ndarray], shape (3,)
     """
     return _jit_find_C4s_for_Oh(len(mol), mol.positions, mol.get_masses(), mol.info["geom_tol"])

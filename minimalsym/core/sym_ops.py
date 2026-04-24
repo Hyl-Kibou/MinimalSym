@@ -9,14 +9,14 @@ def rotation_matrix(axis, theta):
 
     Parameters
     ----------
-    axis: np.array
+    axis: np.ndarray
         Cartesian vector defining rotation axis, shape(3,).
     theta: float
         Angle of rotation in radians.
 
     Returns
     -------
-    np.array
+    np.ndarray
         Matrix defining rotation on column vector, shape (3,3).
     """
     kmat1 = np.array([[0.0, -axis[2], axis[1]],
@@ -33,12 +33,12 @@ def reflection_matrix(axis):
 
     Parameters
     ----------
-    axis: np.array
+    axis: np.ndarray
         Cartesian vector defining the plane normal vector, shape(3,).
 
     Returns
     -------
-    np.array
+    np.ndarray
         Matrix defining reflection on column vector, shape (3,3).
     """
     M = np.zeros((3, 3))
@@ -58,7 +58,7 @@ def inversion_matrix():
 
     Returns
     -------
-    np.array
+    np.ndarray
         Matrix defining inversion, shape(3,3).
     """
     return -1*np.eye(3)
@@ -70,14 +70,14 @@ def Cn(axis, n):
 
     Parameters
     ----------
-    axis: np.array
+    axis: np.ndarray
         Cartesian vector defining rotation axis, shape(3,).
     n: int
         Defines rotation angle by theta = 2 pi / n.
 
     Returns
     -------
-    np.array
+    np.ndarray
         Matrix defining proper rotation on column vector, shape(3,3).
     """
     theta = 2*np.pi/n
@@ -90,14 +90,14 @@ def Sn(axis, n):
 
     Parameters
     ----------
-    axis: np.array
+    axis: np.ndarray
         Cartesian vector defining rotation axis, shape(3,).
     n: int
         Defines rotation angle by theta = 2 pi / n.
 
     Returns
     -------
-    np.array
+    np.ndarray
         Matrix defining improper rotation on column vector, shape (3,3).
     """
     return np.dot(reflection_matrix(axis), Cn(axis, n))
@@ -121,12 +121,12 @@ def normalize(a):
 
     Parameters
     ----------
-    a: np.array
+    a: np.ndarray
         Vector of arbitrary magnitude, shape(n,).
 
     Returns
     -------
-    np.array
+    np.ndarray
         Normalized vector shape(n,) or zero vector shape(n, ) if the magnitude of ``a`` is less than the global tolerance.
     """
     n = vec_norm(a)
@@ -154,9 +154,9 @@ def issame_axis(a, b, tol=global_tol):
 
     Paremeters
     ----------
-    a: np.array
+    a: np.ndarray
         Vector a, shape(n,).
-    b: np.array
+    b: np.ndarray
         Vector b, shape(n,).
     tol: float
         Tolerance for error, default is ``global_tol``.
@@ -305,7 +305,7 @@ def canonical(v):
     return v
 
 @njit
-def generate_cyclic_axes(static_axis:np.array, saxis:np.array, n:int, num_elem_generate:int = -1):
+def generate_cyclic_axes(static_axis:np.ndarray, saxis:np.ndarray, n:int, num_elem_generate:int = -1):
     """
     Generate a set of axes by rotating a reference axis around a fixed axis.
 

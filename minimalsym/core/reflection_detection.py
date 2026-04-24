@@ -21,7 +21,7 @@ def _is_there_sigmah(mol, paxis):
     Parameters
     ----------
     mol : ase.Atoms
-    paxis : np.array, shape (3,)
+    paxis : np.ndarray, shape (3,)
 
     Returns
     -------
@@ -39,11 +39,11 @@ def _is_there_sigmav(mol, SEAs, paxis):
     ----------
     mol : ase.Atoms
     SEAs : List[SEA]
-    paxis : np.array, shape (3,)
+    paxis : np.ndarray, shape (3,)
 
     Returns
     -------
-    tuple(bool, np.array or None)
+    tuple(bool, np.ndarray or None)
     """
     axes = []
     positions = mol.positions
@@ -120,7 +120,7 @@ def _planar_mol_axis(mol):
 
     Returns
     -------
-    : np.array
+    : np.ndarray
         shape (3,) or None
     """
     coords = mol.positions - mol.positions.mean(axis=0)

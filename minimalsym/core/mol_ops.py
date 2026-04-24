@@ -15,29 +15,29 @@ class SEA():
     ----------
     label : str or None, optional
         Rotor type of the SEA set (e.g. Single Atom, Linear, Spherical, Regular Polygon, Oblate Symmetric Top).
-    subset : np.array
+    subset : np.ndarray
         Atom indices in the molecule that belong to this SEA set, shape (N,).
-    axis : np.array or None, optional
+    axis : np.ndarray or None, optional
         Candidate rotational symmetry axis, shape (3,).
     """
     label: str
-    subset: np.array
-    axis: np.array
+    subset: np.ndarray
+    axis: np.ndarray
     def __eq__(self, other):
         if len(self.subset) != len(other.subset):
             return False
         return self.label == other.label and (self.subset == other.subset).all() and (self.axis == other.axis).all()
 
 @njit
-def transform(positions: "np.array", M: "np.array") -> "np.array":
+def transform(positions: "np.ndarray", M: "np.ndarray") -> "np.ndarray":
     """
     Transform coordinates of molecule by matrix M and return new positions.
 
     Parameters
     ----------
-    positions: np.array
+    positions: np.ndarray
         Molecule positions.
-    M: np.array
+    M: np.ndarray
         Transformation matrix (e.g. rotation, reflection, etc.), shape (3,3)
 
     Returns
@@ -55,12 +55,12 @@ def distance_matrix(positions):
 
     Parameters
     ----------
-    positions: np.array
+    positions: np.ndarray
         Numpy array of positions of Molecule.
 
     Returns
     -------
-    np.array
+    np.ndarray
         Interatomic distance matrix, shape(len(mol),len(mol))
     """
     dm = np.zeros((len(positions), len(positions)))
@@ -166,7 +166,7 @@ def get_SEAs_from_atom_map(atom_map):
 
     Parameters
     ----------
-    atom_map: np.array
+    atom_map: np.ndarray
         Symtext.atom_map
 
     Returns
@@ -231,7 +231,7 @@ def calcmoit(atoms):
 
     Returns
     -------
-    np.array
+    np.ndarray
         Cartesian moment of inertia tensor, shape(3,3).
     """
     atoms.translate(-atoms.get_center_of_mass())

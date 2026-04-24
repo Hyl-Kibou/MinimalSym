@@ -96,7 +96,7 @@ def _set_tolerances(mol: Atoms, geom_tol:float, eigen_tol:float|None = None):
 
 # ── Estimate a value for eigen tolerance ───────────────────────────────────────
 
-def _estimate_eigen_tol(positions: np.array, masses:np.array, geom_tol:float, factor:float=2.0):
+def _estimate_eigen_tol(positions: np.ndarray, masses:np.ndarray, geom_tol:float, factor:float=2.0):
     """
     Estimate a relative eigenvalue tolerance from geometric tolerance.
 
@@ -529,15 +529,15 @@ def symmetrize(mol_in: Atoms, geom_tol: float = 0.05, eigen_tol: float|None = No
 """
 Evaluation
 """
-def _get_error(a_pos: np.array, b_pos: np.array) -> float:
+def _get_error(a_pos: np.ndarray, b_pos: np.ndarray) -> float:
     """
     Returns RMSD of two positions np.arrays.
 
     Parameters
     ----------
-    a_pos : np.array
+    a_pos : np.ndarray
         Positions of molecule A to get RMSD.
-    b_pos : np.array
+    b_pos : np.ndarray
         Positions of molecule B to get RMSD.
 
     Returns

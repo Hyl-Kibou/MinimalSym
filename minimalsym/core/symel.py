@@ -12,9 +12,9 @@ class Symel():
     ----------
     symbol: str
         Schoenflies symbol of the symmetry element (e.g. "C_3", "sigma_h", "i").
-    vector: np.array or None
+    vector: np.ndarray or None
         Axis vector for Cn and Sn; plane normal vector for sigma; None for E and i.
-    rrep: np.array
+    rrep: np.ndarray
         3x3 real-space matrix representation of the operation.
     m: int or None
         Power of the generator (e.g. m=2 for C_3^2).

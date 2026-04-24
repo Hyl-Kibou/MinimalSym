@@ -46,8 +46,8 @@ def rotate_mol_to_symels(mol, paxis, saxis):
     Parameters
     ----------
     mol : ase.Atoms
-    paxis : np.array, shape (3,)
-    saxis : np.array, shape (3,)
+    paxis : np.ndarray, shape (3,)
+    saxis : np.ndarray, shape (3,)
 
     Returns
     -------

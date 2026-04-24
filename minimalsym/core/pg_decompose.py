@@ -6,7 +6,7 @@ from .pg_detect import PointGroupResult, _classify_general
 from .special_geometry import _find_C4s_for_Oh
 from .mol_ops import transform
 
-def _print_to_vector(axes:np.array, shine:float=0.2, factor:float=1.0) -> None:
+def _print_to_vector(axes:np.ndarray, shine:float=0.2, factor:float=1.0) -> None:
     """
     Internal debugging utility: print vectors in a visualization-friendly format.
 
@@ -48,7 +48,7 @@ def _print_to_vector(axes:np.array, shine:float=0.2, factor:float=1.0) -> None:
     print("- - - - - - - -")
 
 
-def _decompose_cyclic(family:str, n:int, subfamily:str, paxis:np.array, saxis:np.array, taxis:np.array) -> list[PointGroupResult]:
+def _decompose_cyclic(family:str, n:int, subfamily:str, paxis:np.ndarray, saxis:np.ndarray, taxis:np.ndarray) -> list[PointGroupResult]:
     """
     Decompose cyclic and dihedral point groups into symmetry-consistent subgroups.
 
@@ -194,7 +194,7 @@ def _decompose_cyclic(family:str, n:int, subfamily:str, paxis:np.array, saxis:np
 
     return pg_list
 
-def _decompose_T_family(subfamily:str, paxis:np.array, saxis:np.array, taxis:np.array) -> list[PointGroupResult]:
+def _decompose_T_family(subfamily:str, paxis:np.ndarray, saxis:np.ndarray, taxis:np.ndarray) -> list[PointGroupResult]:
     """
     Decompose tetrahedral point groups into symmetry-consistent subgroups.
 
@@ -309,7 +309,7 @@ def _decompose_T_family(subfamily:str, paxis:np.array, saxis:np.array, taxis:np.
 
     return pg_list
 
-def _decompose_O_family(subfamily:str, paxis:np.array, saxis:np.array, taxis:np.array) -> list[PointGroupResult]:
+def _decompose_O_family(subfamily:str, paxis:np.ndarray, saxis:np.ndarray, taxis:np.ndarray) -> list[PointGroupResult]:
     """
     Decompose octahedral point groups into symmetry-consistent subgroups.
 
@@ -456,7 +456,7 @@ def _decompose_O_family(subfamily:str, paxis:np.array, saxis:np.array, taxis:np.
 
     return pg_list
 
-def _decompose_I_family(subfamily:str, paxis:np.array, saxis:np.array, taxis:np.array) -> list[PointGroupResult]:
+def _decompose_I_family(subfamily:str, paxis:np.ndarray, saxis:np.ndarray, taxis:np.ndarray) -> list[PointGroupResult]:
     """
     Decompose icosahedral point groups into symmetry-consistent subgroups.
 
@@ -636,7 +636,7 @@ def _decompose_I_family(subfamily:str, paxis:np.array, saxis:np.array, taxis:np.
 
     return pg_list
 
-def _decompose_point_group(pg: PointGroup, paxis:np.array = np.array([0., 0., 1.0]), saxis:np.array = np.array([1.0, 0., 0.])) -> list[PointGroupResult]:
+def _decompose_point_group(pg: PointGroup, paxis:np.ndarray = np.array([0., 0., 1.0]), saxis:np.ndarray = np.array([1.0, 0., 0.])) -> list[PointGroupResult]:
     """
     Decompose a point group into its symmetry elements represented
     as PointGroupResult objects.
@@ -645,9 +645,9 @@ def _decompose_point_group(pg: PointGroup, paxis:np.array = np.array([0., 0., 1.
     ----------
     pg: PointGroup
         Point group to decompose
-    paxis: np.array
+    paxis: np.ndarray
         Principal axis of point group
-    saxis: np.array
+    saxis: np.ndarray
         Secondary axis of point group
     Returns
     -------
