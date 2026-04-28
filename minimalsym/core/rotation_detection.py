@@ -10,7 +10,7 @@ Public names consumed by pg_detect.py:
 import numpy as np
 from numba import njit
 
-from .sym_ops import Cn, vec_norm_axis, normalize, inertia_isclose, issame_axis, isfactor
+from .sym_ops import Cn, Sn, vec_norm_axis, normalize, inertia_isclose, issame_axis, isfactor
 from .mol_ops import calcmoit, transform_isequivalent
 
 
@@ -154,17 +154,82 @@ def _find_rotations(mol, rotation_set):
     rsu = _rotation_set_union(rotation_set)
     out = []
     for i in rsu:
-        rotation_is_valid = True
-        for suborder in range(2, i.order+1):
-            if i.order % suborder == 0:
-                rmat = Cn(i.axis, suborder)
-                if not transform_isequivalent(positions, masses, geom_tol, rmat):
-                    rotation_is_valid = False
-                    break
+        rotation_is_valid = validate_cn_subrotations(i.order, i.axis, positions, masses, geom_tol)
         if rotation_is_valid:
             out.append(i)
     return out
 
+# ── Validate symmetry elements ────────────────────────────────────────────────
+
+def validate_cn_subrotations(order:int, axis:np.ndarray, positions:np.ndarray, masses:np.ndarray, geom_tol:float) -> bool:
+    """
+    Validate subrotations
+
+    Parameters
+    ----------
+    order: int
+        Order of rotation
+    axis: np.ndarray
+        Axis of rotation
+    positions: np.ndarray
+        Atom positions, shape(n, 3)
+    masses: np.ndarray
+        Atom masses, shape(n, )
+    geom_tol: float
+        Geometric tolerance
+
+    Returns
+    -------
+    : bool
+        True if all subrotations and rotation are valid
+    """
+    for subrotation in range(1, order):
+        rmat = Cn(axis, (order/subrotation))
+        if not transform_isequivalent(positions, masses, geom_tol, rmat):
+            return False
+
+    return True
+
+def validate_sn_subrotations(order:int, axis:np.ndarray, positions:np.ndarray, masses:np.ndarray, geom_tol:float, has_sigmah:bool=False) -> bool:
+    """
+    Validate improper subrotations, Sn
+
+    Parameters
+    ----------
+    order: int
+        Order of rotation
+    axis: np.ndarray
+        Axis of rotation
+    positions: np.ndarray
+        Atom positions, shape(n, 3)
+    masses: np.ndarray
+        Atom masses, shape(n, )
+    geom_tol: float
+        Geometric tolerance
+    has_sigmah: bool
+        If True improper rotation is done for each rotation in order.
+        Else it is only done for reachable states of pure improper rotations.
+
+    Returns
+    -------
+    : bool
+        True if all subrotations and rotation are valid
+    """
+    if has_sigmah:
+        for subrotation in range(1, order):
+            rmat = Sn(axis, (order/subrotation))
+            if not transform_isequivalent(positions, masses, geom_tol, rmat):
+                return False
+    else:
+        for subrotation in range(1, order * 2, 2):
+            subrotation = subrotation % order
+            if subrotation == 0:
+                continue
+            rmat = Sn(axis, (order/subrotation))
+            if not transform_isequivalent(positions, masses, geom_tol, rmat):
+                return False
+
+    return True
 
 # ── Axis helpers ──────────────────────────────────────────────────────────────
 

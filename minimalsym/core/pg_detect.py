@@ -26,6 +26,7 @@ from .constants import IH_C2_C3_ANGLE, IH_ANGLE_TOL, PRINT_WARNINGS
 from .rotation_detection import (
     _find_rotation_sets, _find_rotations, _linear_mol_axis,
     _find_a_c2, _is_there_ortho_c2, _num_C2, _highest_order_axis,
+    validate_cn_subrotations, validate_sn_subrotations
 )
 from .reflection_detection import (
     _is_there_sigmah, _is_there_sigmav, mol_is_planar, _planar_mol_axis,
@@ -103,7 +104,22 @@ def _classify_spherical_top(mol, positions, masses, geom_tol):
         # Octahedral: paxis and saxis are two orthogonal C4 axes.
         try:
             c4s = _find_C4s_for_Oh(mol)
-            paxis, saxis = c4s[0], c4s[1]
+            paxis, saxis, taxis = c4s[0], c4s[1], c4s[2]
+
+            c3s = np.array([
+                normalize(paxis +  saxis +  taxis),
+                normalize(paxis +  saxis + -taxis),
+                normalize(paxis + -saxis +  taxis),
+                normalize(paxis + -saxis + -taxis)])
+
+            c3_axes_are_valid = True
+
+            for c3_axis in c3s:
+                c3_axes_are_valid = validate_cn_subrotations(3, c3_axis, positions, masses, geom_tol) and c3_axes_are_valid
+
+            if c3_axes_are_valid == False:
+                is_spherical = False
+
             pg = "Oh" if invertable else "O"
         except RuntimeError:
             is_spherical = False
@@ -111,7 +127,7 @@ def _classify_spherical_top(mol, positions, masses, geom_tol):
     elif n == 3:
         try:
             # Tetrahedral (n == 3): use two of the three C2 axes.
-            paxis, saxis = axes[0], axes[1]
+            paxis, saxis, taxis = axes[0], axes[1], axes[2]
 
             # Detect reflection symmetry (any sigma plane)
             sigmav_chk, _ = _is_there_sigmav(mol, seas, paxis)
@@ -120,6 +136,19 @@ def _classify_spherical_top(mol, positions, masses, geom_tol):
             # Detect improper rotation S4 (characteristic of Td/Th)
             S4 = Sn(paxis, 4)
             has_S4 = transform_isequivalent(positions, masses, geom_tol, S4)
+
+            c3_axes = [
+                normalize(paxis +  saxis +  taxis),
+                normalize(paxis +  saxis + -taxis),
+                normalize(paxis + -saxis +  taxis),
+                normalize(paxis + -saxis + -taxis)]
+
+            c3_axes_are_valid = True
+            for c3_axis in c3_axes:
+                c3_axes_are_valid = validate_cn_subrotations(3, c3_axis, positions, masses, geom_tol) and c3_axes_are_valid
+
+            if c3_axes_are_valid == False:
+                is_spherical = False
 
             if invertable:
                 pg = "Th"
@@ -173,28 +202,42 @@ def _classify_subfamily(mol, seas, positions, masses, geom_tol, paxis, Cn_order)
     ortho_c2_chk, c2_ortho = _is_there_ortho_c2(mol, seas, paxis)
     sigmav_chk, sigmav = _is_there_sigmav(mol, seas, paxis)
     sigmah_chk = _is_there_sigmah(mol, paxis)
+    inversion_chk = transform_isequivalent(positions, masses, geom_tol, inversion_matrix())
+    if sigmah_chk:
+        sn_chk = validate_sn_subrotations(Cn_order, paxis, positions, masses, geom_tol, sigmah_chk)
 
     if ortho_c2_chk:
         c2_ortho = normalize(c2_ortho - np.dot(c2_ortho, paxis) * paxis)
         ortho_c2_chk = _validate_all_c2_ortho(positions, masses, geom_tol, paxis, c2_ortho, Cn_order)
 
     if sigmav_chk:
-        sigmav = normalize(sigmav - np.dot(sigmav, paxis) * paxis)
-        sigmav_chk = _validate_all_sigmav(positions, masses, geom_tol, paxis, sigmav, Cn_order)
+        if ortho_c2_chk:
+            if sigmah_chk:
+                # Dnh
+                sigmav = normalize(np.cross(c2_ortho, paxis))
+                sigmav_chk = _validate_all_sigmav(positions, masses, geom_tol, paxis, sigmav, Cn_order)
+            else:
+                # Dnd
+                sigmav = normalize(sum(generate_cyclic_axes(paxis, c2_ortho, Cn_order, 2)))
+                sigmav_chk = _validate_all_sigmav(positions, masses, geom_tol, paxis, sigmav, Cn_order)
+        else:
+            # Cnv
+            sigmav = normalize(sigmav - np.dot(sigmav, paxis) * paxis)
+            sigmav_chk = _validate_all_sigmav(positions, masses, geom_tol, paxis, sigmav, Cn_order)
 
     if ortho_c2_chk:
         saxis = c2_ortho
-        if sigmah_chk:
+        if sigmah_chk and (Cn_order % 2 or inversion_chk) and sigmav_chk and sn_chk:
             pg = "D" + str(Cn_order) + "h"
         elif sigmav_chk:
-            S2n = Sn(paxis, Cn_order * 2)
-            if transform_isequivalent(positions, masses, geom_tol, S2n):
+            s2n_chk = validate_sn_subrotations(Cn_order * 2, paxis, positions, masses, geom_tol)
+            if s2n_chk:
                 pg = "D" + str(Cn_order) + "d"
             else:
                 pg = "D" + str(Cn_order)
         else:
             pg = "D" + str(Cn_order)
-    elif sigmah_chk:
+    elif sigmah_chk and (Cn_order % 2 or inversion_chk) and sn_chk:
         pg = "C" + str(Cn_order) + "h"
     elif sigmav_chk:
         pg = "C" + str(Cn_order) + "v"
@@ -203,8 +246,8 @@ def _classify_subfamily(mol, seas, positions, masses, geom_tol, paxis, Cn_order)
         elif sigmav is not None and hasattr(sigmav, '__len__') and any(sigmav):
             saxis = normalize(np.cross(paxis, sigmav))
     else:
-        S2n = Sn(paxis, Cn_order * 2)
-        if transform_isequivalent(positions, masses, geom_tol, S2n):
+        s2n_chk = validate_sn_subrotations(Cn_order * 2, paxis, positions, masses, geom_tol)
+        if s2n_chk:
             pg = "S" + str(2 * Cn_order)
         else:
             pg = "C" + str(Cn_order)
