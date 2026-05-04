@@ -17,11 +17,13 @@ Internal implementation is split across three focused sub-modules:
 
 import numpy as np
 from dataclasses import dataclass
-import warnings
+import logging
 
 from .sym_ops import rotation_matrix, inversion_matrix, Sn, normalize, inertia_isclose, generate_cyclic_axes, Cn, reflection_matrix
 from .mol_ops import calcmoit, transform_isequivalent, find_SEAs
-from .constants import IH_C2_C3_ANGLE, IH_ANGLE_TOL, PRINT_WARNINGS
+from .constants import IH_C2_C3_ANGLE, IH_ANGLE_TOL
+
+logger = logging.getLogger(__name__)
 
 from .rotation_detection import (
     _find_rotation_sets, _find_rotations, _linear_mol_axis,
@@ -77,9 +79,8 @@ def _classify_spherical_top(mol, positions, masses, geom_tol):
     axes = _num_C2(positions, masses, geom_tol, list_sea_subset, 15)
     n = len(axes)
     if n == 0:
-        if PRINT_WARNINGS:
-            warnings.warn("Molecule was wrongly classified as a spherical top, (num_C2 couldn't find any C2 axis), probably due to high eigen_tol. " \
-                "Process will continue as general symmetry.")
+        logger.warning("Molecule was wrongly classified as a spherical top, (num_C2 couldn't find any C2 axis), probably due to high eigen_tol. " \
+            "Process will continue as general symmetry.")
         return _classify_general(mol, positions, masses, geom_tol)
     invertable = transform_isequivalent(positions, masses, geom_tol, inversion_matrix())
     is_spherical = True
@@ -163,9 +164,8 @@ def _classify_spherical_top(mol, positions, masses, geom_tol):
     else:
         is_spherical = False
     if not is_spherical:
-        if PRINT_WARNINGS:
-            warnings.warn(f"Molecule was wrongly classified as a spherical top, (n is {n}), probably due to high eigen_tol or geom_tol. " \
-                "Process will continue as general symmetry.")
+        logger.warning("Molecule was wrongly classified as a spherical top, (number of c2 axes is %d), probably due to high eigen_tol or geom_tol. " \
+            "Process will continue as general symmetry.", n)
         return _classify_general(mol, positions, masses, geom_tol)
 
     return PointGroupResult(pg=pg, paxis=paxis, saxis=saxis)

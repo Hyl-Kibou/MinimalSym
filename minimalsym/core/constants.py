@@ -24,10 +24,3 @@ IH_ANGLE_TOL: float = 1e-4
 """
 Angular tolerance for the IH_C2_C3_ANGLE comparison.
 """
-
-# ── Warning Control ──────────────────────────────────────────────────────────
-
-PRINT_WARNINGS: bool = False
-"""
-If `True` warnings and debug messages are printed.
-"""

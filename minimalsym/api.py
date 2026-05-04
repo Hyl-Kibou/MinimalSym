@@ -4,11 +4,11 @@ minimalsym.py — Public API for molecular symmetry analysis.
 
 import numpy as np
 from dataclasses import dataclass
+import logging
 
 from .core.pg_detect import find_point_group, mol_is_planar
 from .core.symtext import Symtext
 from .core.mol_ops import _jit_calcmoit
-from .core.constants import PRINT_WARNINGS
 
 from .core.mol_ops import get_SEAs_from_atom_map
 from .core.pg_decompose import _decompose_point_group, _find_pg_score, _unique_point_group, _check_O_point_group, _check_general_point_group
@@ -139,17 +139,9 @@ def _estimate_eigen_tol(positions: np.ndarray, masses:np.ndarray, geom_tol:float
     eigen_tol = factor * geom_tol / np.sqrt(scale / np.sum(masses))
     return eigen_tol
 
-# ── Global variable change ─────────────────────────────────────────────────────
-
-def _change_global_variable(quiet: bool):
-    global PRINT_WARNINGS
-
-    # If quiet is True, PRINT_WARNINGS is disabled.
-    PRINT_WARNINGS = not quiet
-
 # ── Point group & planarity ────────────────────────────────────────────────────
 
-def get_point_group(mol: Atoms, geom_tol: float = 0.05, eigen_tol: float|None = None, quiet: bool = True) -> str:
+def get_point_group(mol: Atoms, geom_tol: float = 0.05, eigen_tol: float|None = None) -> str:
     """
     Determine the point group of a molecule.
 
@@ -162,8 +154,6 @@ def get_point_group(mol: Atoms, geom_tol: float = 0.05, eigen_tol: float|None = 
     eigen_tol : float, optional
         Relative tolerance for eigenvalues (default None,
         internal worker will determine an appropriate float).
-    quiet: bool
-        If `True` warnings and debug messages will be disabled.
 
     Returns
     -------
@@ -179,7 +169,6 @@ def get_point_group(mol: Atoms, geom_tol: float = 0.05, eigen_tol: float|None = 
     RuntimeError
         point-group detection failed internally.
     """
-    _change_global_variable(quiet)
     _validate_mol(mol, geom_tol, min_atoms=1)
     mol = mol.copy()
     mol.translate(-mol.get_center_of_mass())
@@ -274,7 +263,7 @@ def _union_find_pass(atom_map, parent, symel_indices):
             parent[idx] = owner
 
 
-def get_inequivalent(mol_in: Atoms, geom_tol: float = 0.3, eigen_tol: float|None = None, quiet: bool = True) -> tuple[np.ndarray, np.ndarray]:
+def get_inequivalent(mol_in: Atoms, geom_tol: float = 0.3, eigen_tol: float|None = None) -> tuple[np.ndarray, np.ndarray]:
     """
     Find symmetry-inequivalent atoms using all symmetry operations.
 
@@ -290,8 +279,6 @@ def get_inequivalent(mol_in: Atoms, geom_tol: float = 0.3, eigen_tol: float|None
     eigen_tol : float, optional
         Relative tolerance for eigenvalues (default None,
         internal worker will determine an appropriate float).
-    quiet: bool
-        If `True` warnings and debug messages will be disabled.
 
     Returns
     -------
@@ -306,7 +293,6 @@ def get_inequivalent(mol_in: Atoms, geom_tol: float = 0.3, eigen_tol: float|None
     ValueError
     RuntimeError
     """
-    _change_global_variable(quiet)
     _validate_mol(mol_in, geom_tol, min_atoms=1)
     mol_in = mol_in.copy()
     mol_in.translate(-mol_in.get_center_of_mass())
@@ -437,7 +423,7 @@ def _force_symmetry_from_representative(mol, atom_i, asym_symtext):
             asym_symtext.symels[g].rrep, mol.positions[atom_i, :]
         )
 
-def symmetrize(mol_in: Atoms, geom_tol: float = 0.05, eigen_tol: float|None = None, quiet: bool = True) -> Atoms:
+def symmetrize(mol_in: Atoms, geom_tol: float = 0.05, eigen_tol: float|None = None) -> Atoms:
     """
     Symmetrize the geometry of a molecule to exact point-group symmetry.
 
@@ -479,8 +465,6 @@ def symmetrize(mol_in: Atoms, geom_tol: float = 0.05, eigen_tol: float|None = No
     eigen_tol : float, optional
         Relative tolerance for eigenvalues (default None,
         internal worker will determine an appropriate float).
-    quiet: bool
-        If `True` warnings and debug messages will be disabled.
 
     Returns
     -------
@@ -494,7 +478,6 @@ def symmetrize(mol_in: Atoms, geom_tol: float = 0.05, eigen_tol: float|None = No
     Exception
         Re-raises unexpected symmetry element types.
     """
-    _change_global_variable(quiet)
     mol_in = mol_in.copy()
 
     mol_in.translate(-mol_in.get_center_of_mass())
@@ -565,7 +548,7 @@ class SymmetryResult:
     pg: str
     rmsd: float
 
-def generate_symmetry_candidates(mol_in: Atoms, geom_tol: float = 0.05, eigen_tol: float|None = None, sort_by:int = 0, quiet: bool = True) -> list[SymmetryResult]:
+def generate_symmetry_candidates(mol_in: Atoms, geom_tol: float = 0.05, eigen_tol: float|None = None, sort_by:int = 0) -> list[SymmetryResult]:
     """
     Generate symmetry-consistent geometries compatible with a detected point group.
 
@@ -618,8 +601,6 @@ def generate_symmetry_candidates(mol_in: Atoms, geom_tol: float = 0.05, eigen_to
             then by RMSD (ascending).
 
         - 1 := sort by RMSD (ascending), then by point group "size" (descending).
-    quiet: bool
-        If `True` warnings and debug messages will be disabled.
 
     Returns
     -------
@@ -635,7 +616,6 @@ def generate_symmetry_candidates(mol_in: Atoms, geom_tol: float = 0.05, eigen_to
         Propagates unexpected exceptions encountered during projection
         or mapping.
     """
-    _change_global_variable(quiet)
     mol_in = mol_in.copy()
 
     mol_in.translate(-mol_in.get_center_of_mass())

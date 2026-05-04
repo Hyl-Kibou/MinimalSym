@@ -9,10 +9,11 @@ Public names consumed by pg_detect.py:
 import numpy as np
 from numba.typed import List
 from numba import njit, types
+import logging
 
 from .sym_ops import Cn, normalize, float_isclose, get_unique_axes
 from .mol_ops import transform_isequivalent
-from .constants import PRINT_WARNINGS
+logger = logging.getLogger(__name__)
 
 
 # ── Icosahedral geometry ──────────────────────────────────────────────────────
@@ -99,8 +100,7 @@ def _find_C3s_for_Ih(mol, seas):
         chk = len(c3_axes)
         if chk == 10:
             return c3_axes
-    if PRINT_WARNINGS:
-        print("DEBUG: C3 axes count:", chk)
+    logger.debug("C3 axes count: %d", chk)
     raise RuntimeError(
         "Unexpected number of C3 axes for Ih point group, expected 10."
     )
@@ -232,8 +232,7 @@ def _find_C4s_for_Oh(mol, seas):
         chk = len(c4_axes)
         if chk == 3:
             return c4_axes
-    if PRINT_WARNINGS:
-        print("DEBUG: c4 axes count", chk)
+    logger.debug("c4 axes count %d", chk)
     raise RuntimeError(
             "Unexpected number of C4 axes for Oh point group, expected 3."
         )
