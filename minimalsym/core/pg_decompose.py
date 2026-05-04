@@ -4,7 +4,7 @@ from .point_group import PointGroup
 from .sym_ops import normalize, rotation_matrix, canonical, generate_cyclic_axes, issame_axis, float_isclose
 from .pg_detect import PointGroupResult, _classify_general
 from .special_geometry import _find_C4s_for_Oh
-from .mol_ops import transform
+from .mol_ops import transform, find_SEAs
 
 def _print_to_vector(axes:np.ndarray, shine:float=0.2, factor:float=1.0) -> None:
     """
@@ -706,7 +706,8 @@ def _check_O_point_group(mol, invertable:bool) -> list[PointGroupResult]:
         Empty if no O point group was found.
     """
     try:
-        c4_axes = _find_C4s_for_Oh(mol)
+        seas = find_SEAs(mol)
+        c4_axes = _find_C4s_for_Oh(mol, seas)
         paxis = c4_axes[0]
         saxis = c4_axes[1]
         if invertable:

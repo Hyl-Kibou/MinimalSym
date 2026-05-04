@@ -13,8 +13,22 @@ from .mol_ops import transform
 from .constants import NUMERICAL_TOL as global_tol
 
 
-@njit
+@njit(cache=True)
 def _jit_rotate_mol_to_symels(positions, paxis, saxis):
+    """
+    Align paxis to z-axis, saxis to x-axis.
+
+    Parameters
+    ----------
+    positions : np.ndarray
+    paxis : np.ndarray
+    saxis : np.ndarray
+
+    Returns
+    -------
+    tuple(np.ndarray, np.ndarray, np.ndarray)
+        new_positions, rmat, rmat_inv
+    """
     if float_isclose(vec_norm(paxis), 0.0, atol=global_tol):
         rmat = rmat_inv = np.eye(3)
         return positions, rmat, rmat_inv

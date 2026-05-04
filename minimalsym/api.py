@@ -221,8 +221,7 @@ def is_planar(mol: Atoms, geom_tol: float = 0.05) -> bool:
     mol = mol.copy()
     mol.translate(-mol.get_center_of_mass())
 
-    mol.info["geom_tol"] = geom_tol
-    return mol_is_planar(mol)
+    return mol_is_planar(mol.positions, geom_tol)
 
 
 # ── Atom equivalence (union-find) ─────────────────────────────────────────────

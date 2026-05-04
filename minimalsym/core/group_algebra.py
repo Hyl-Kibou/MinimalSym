@@ -9,7 +9,7 @@ import numpy as np
 from numba import njit
 from .sym_ops import _gcd
 
-@njit
+@njit(cache=True)
 def _omega(m, n):
     """Reduce the power m of an S_n element to its canonical symbol index and axis order."""
     gcd_val = _gcd(m, n)
@@ -17,14 +17,14 @@ def _omega(m, n):
     return int(l), int(n // gcd_val)
 
 
-@njit
+@njit(cache=True)
 def _mult_iCnm(m, n):
     """Return the canonical power and axis order of i * C_n^m."""
     a = (2 * m + n) % (2 * n)
     return _omega(a, 2 * n)
 
 
-@njit
+@njit(cache=True)
 def _mult_sigmahCnm(m, n):
     """Return the canonical power and axis order of sigma_h * C_n^m."""
     return _omega(m, n)
@@ -46,11 +46,11 @@ def _mult_CSC2sigma(m, n, pre, post):
             else:
                 label = even_odd[(m + 1) % 2]
                 a = ((n >> 2) + ((m + 1) >> 1)) % (n >> 1)
-            return post + label + f"({a})"
+            return post + label + "("+str(a)+")"
         else:
             label = even_odd[m % 2]
             a = (m >> 1) % (n >> 1)
-            return post + label + f"({a})"
+            return post + label + "("+str(a)+")"
     else:
         if pre == "iC":
             label = "_d"
@@ -58,4 +58,4 @@ def _mult_CSC2sigma(m, n, pre, post):
         else:
             label = even_odd[0]
             a = ((((n >> 1) + 1) * (m % 2)) + (m >> 1)) % n
-        return post + label + f"({a})"
+        return post + label + "("+str(a)+")"

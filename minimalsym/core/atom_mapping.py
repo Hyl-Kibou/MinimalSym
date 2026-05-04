@@ -14,8 +14,11 @@ from .symel import Symel
 # ── JIT kernels ───────────────────────────────────────────────────────────────
 
 @njit(cache=True)
-def _jit_where_you_go(positions, geom_tol, atom, rrep):
-    """Return the index of the atom that *atom* maps to under *rrep*."""
+def _where_you_go(positions, geom_tol, atom, rrep) -> int:
+    """
+    Return the index of the atom that *atom* maps to under *rrep*.
+    Return -1 for failure.
+    """
     ratom = np.dot(rrep, positions[atom, :].T)
     tol2 = geom_tol*geom_tol
     for i in range(len(positions)):
@@ -30,33 +33,13 @@ def _jit_get_atom_mapping(positions, geom_tol, rreps):
     natoms = len(positions)
     nsymels = rreps.shape[0]
     amap = np.empty((natoms, nsymels), dtype=np.int64)
-    for i in range(natoms):
-        for j in range(nsymels):
-            amap[i, j] = np.int64(-1)
     for atom in range(natoms):
         for s in range(nsymels):
-            amap[atom, s] = _jit_where_you_go(positions, geom_tol, atom, rreps[s])
+            amap[atom, s] = _where_you_go(positions, geom_tol, atom, rreps[s])
     return amap
 
 
 # ── Public builders ───────────────────────────────────────────────────────────
-
-def _where_you_go(mol, atom, symel):
-    """
-    Find the atom index that *atom* maps to under *symel*.
-
-    Parameters
-    ----------
-    mol : ase.Atoms
-    atom : int
-    symel : Symel
-
-    Returns
-    -------
-    int or None
-    """
-    w = _jit_where_you_go(mol.positions, mol.info["geom_tol"], atom, symel.rrep)
-    return w if w != -1 else None
 
 def _get_atom_mapping(mol, symels):
     """
@@ -105,13 +88,15 @@ def _get_linear_atom_mapping(mol, pg):
     np.ndarray
     """
     natoms = len(mol)
+    positions = mol.positions
+    geom_tol = mol.info["geom_tol"]
     amap = np.arange(natoms, dtype=int).reshape((natoms, 1))
     if pg.family == "D":
         ungerade_map = np.zeros(natoms, dtype=int)
         inversion_symel = Symel("i", None, -np.eye(3), None, None, None)
         for atom in range(natoms):
-            w = _where_you_go(mol, atom, inversion_symel)
-            if w is not None:
+            w = _where_you_go(positions, geom_tol, atom, inversion_symel.rrep)
+            if w != -1:
                 ungerade_map[atom] = w
             else:
                 raise Exception(f"Atom {atom} not mapped to another atom under symel i")

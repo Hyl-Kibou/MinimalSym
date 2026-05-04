@@ -1,6 +1,8 @@
 import numpy as np
 from dataclasses import dataclass
 from numba import njit
+from numba.typed import List
+from numba import types
 from .sym_ops import unique_sorted
 
 
@@ -63,9 +65,10 @@ def distance_matrix(positions):
     np.ndarray
         Interatomic distance matrix, shape(len(mol),len(mol))
     """
-    dm = np.zeros((len(positions), len(positions)))
-    for i in range(len(positions)):
-        for j in range(i, len(positions)):
+    natoms = len(positions)
+    dm = np.zeros((natoms, natoms))
+    for i in range(natoms):
+        for j in range(i, natoms):
             dx = positions[i,0] - positions[j,0]
             dy = positions[i,1] - positions[j,1]
             dz = positions[i,2] - positions[j,2]
@@ -140,9 +143,9 @@ def find_SEAs(mol):
         SEAs.append(SEA("", subset, np.zeros(3)))
     return SEAs
 
-@njit
+@njit(cache=True)
 def _jit_get_SEAs_from_atom_map(atom_map):
-    subset_list = []
+    subset_list = List.empty_list(types.int64[:])
 
     for subset in atom_map:
         ordered_subset = unique_sorted(subset)
@@ -197,6 +200,8 @@ def _isequivalent(A_masses, A_positions, B_masses, B_positions, geom_tol):
                     if (zs[0]*zs[0] + zs[1]*zs[1] + zs[2]*zs[2]) < tol2:
                         matched[j]=True
                         break
+        if sum(matched) <= i:
+            break
     # Did we find a match for each atom? If so we win
     if sum(matched) == len(A_masses):
         return True

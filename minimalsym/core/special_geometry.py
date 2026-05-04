@@ -7,16 +7,17 @@ Public names consumed by pg_detect.py:
 """
 
 import numpy as np
-from numba import njit
+from numba.typed import List
+from numba import njit, types
 
-from .sym_ops import Cn, normalize, float_isclose, issame_axis
+from .sym_ops import Cn, normalize, float_isclose, get_unique_axes
 from .mol_ops import transform_isequivalent
 from .constants import PRINT_WARNINGS
 
 
 # ── Icosahedral geometry ──────────────────────────────────────────────────────
 
-@njit
+@njit(cache=True)
 def _jit_find_C3s_for_Ih(size, positions, masses, geom_tol):
     """
     Find the 10 unique C3 axes of an icosahedral (Ih/I) molecule.
@@ -55,7 +56,7 @@ def _jit_find_C3s_for_Ih(size, positions, masses, geom_tol):
     Exception
         If the number of unique axes found is not 10.
     """
-    c3_axes = []
+    c3_axes = List.empty_list(types.float64[:])
     for i in range(size):
         for j in range(i + 1, size):
             for k in range(j + 1, size):
@@ -72,45 +73,42 @@ def _jit_find_C3s_for_Ih(size, positions, masses, geom_tol):
                         if transform_isequivalent(positions, masses, geom_tol, c3):
                             c3_axes.append(c3_axis)
     if len(c3_axes) >= 1:
-        unique_axes = [c3_axes[0]]
-        for i in c3_axes:
-            check = True
-            for j in unique_axes:
-                if issame_axis(i, j):
-                    check = False
-                    break
-            if check:
-                unique_axes.append(i)
-        chk = len(unique_axes)
+        return get_unique_axes(c3_axes)
     else:
-        chk = 0
-    if chk != 10:
-        if PRINT_WARNINGS:
-            print("DEBUG: C3 axes count:", chk)
-        raise RuntimeError(
-            "Unexpected number of C3 axes for Ih point group, expected 10."
-        )
-    return unique_axes
+        return List.empty_list(types.float64[:])
 
 
-def _find_C3s_for_Ih(mol):
+def _find_C3s_for_Ih(mol, seas):
     """
     Find the 10 unique C3 axes for an Ih/I molecule so paxis and saxis can be defined.
 
     Parameters
     ----------
     mol : ase.Atoms
+    seas: list[SEA]
 
     Returns
     -------
     List[np.ndarray], shape (3,)
     """
-    return _jit_find_C3s_for_Ih(len(mol), mol.positions, mol.get_masses(), mol.info["geom_tol"])
+
+    c3_axes = List.empty_list(types.float64[:])
+    for sea in seas:
+        c3_axes.extend(_jit_find_C3s_for_Ih(len(sea.subset), mol.positions[sea.subset], mol.get_masses()[sea.subset], mol.info["geom_tol"]))
+        c3_axes = get_unique_axes(c3_axes)
+        chk = len(c3_axes)
+        if chk == 10:
+            return c3_axes
+    if PRINT_WARNINGS:
+        print("DEBUG: C3 axes count:", chk)
+    raise RuntimeError(
+        "Unexpected number of C3 axes for Ih point group, expected 10."
+    )
 
 
 # ── Octahedral geometry ───────────────────────────────────────────────────────
 
-@njit
+@njit(cache=True)
 def _check_square(va, vb, a, b, c, d, positions, masses, geom_tol):
     """
     Test whether four edge lengths form a square and, if so, return the C4 axis.
@@ -144,7 +142,7 @@ def _check_square(va, vb, a, b, c, d, positions, masses, geom_tol):
     return np.zeros(3)
 
 
-@njit
+@njit(cache=True)
 def _jit_find_C4s_for_Oh(size, positions, masses, geom_tol):
     """
     Find the 3 unique C4 axes of an octahedral (Oh/O) molecule.
@@ -176,7 +174,7 @@ def _jit_find_C4s_for_Oh(size, positions, masses, geom_tol):
     Exception
         If the number of unique axes found is not 3.
     """
-    c4_axes = []
+    c4_axes = List.empty_list(types.float64[:])
     for i in range(size):
         for j in range(i + 1, size):
             for k in range(j + 1, size):
@@ -208,39 +206,34 @@ def _jit_find_C4s_for_Oh(size, positions, masses, geom_tol):
                                                 positions, masses, geom_tol)
                         if not (c4_axis == np.zeros(3)).all():
                             c4_axes.append(c4_axis)
-
     if len(c4_axes) >= 1:
-        unique_axes = [c4_axes[0]]
-        for i in c4_axes:
-            check = True
-            for j in unique_axes:
-                if issame_axis(i, j):
-                    check = False
-                    break
-            if check:
-                unique_axes.append(i)
-        chk = len(unique_axes)
+        return get_unique_axes(c4_axes)
     else:
-        chk = 0
-    if chk != 3:
-        if PRINT_WARNINGS:
-            print("DEBUG: c4 axes count", chk)
-        raise RuntimeError(
-            "Unexpected number of C4 axes for Oh point group, expected 3."
-        )
-    return unique_axes
+        return List.empty_list(types.float64[:])
 
 
-def _find_C4s_for_Oh(mol):
+def _find_C4s_for_Oh(mol, seas):
     """
     Find the 3 C4 axes for an Oh/O molecule so paxis and saxis can be defined.
 
     Parameters
     ----------
     mol : ase.Atoms
+    seas : list[SEA]
 
     Returns
     -------
     List[np.ndarray], shape (3,)
     """
-    return _jit_find_C4s_for_Oh(len(mol), mol.positions, mol.get_masses(), mol.info["geom_tol"])
+    c4_axes = List.empty_list(types.float64[:])
+    for sea in seas:
+        c4_axes.extend(_jit_find_C4s_for_Oh(len(sea.subset), mol.positions[sea.subset], mol.get_masses()[sea.subset], mol.info["geom_tol"]))
+        c4_axes = get_unique_axes(c4_axes)
+        chk = len(c4_axes)
+        if chk == 3:
+            return c4_axes
+    if PRINT_WARNINGS:
+        print("DEBUG: c4 axes count", chk)
+    raise RuntimeError(
+            "Unexpected number of C4 axes for Oh point group, expected 3."
+        )

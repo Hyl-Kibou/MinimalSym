@@ -88,7 +88,7 @@ def _icosahedron_vectors():
 def _checked_normalize(vec, label):
     """Normalize *vec* and raise ValueError if the result is a zero vector."""
     result = normalize(vec)
-    if result is None or (result == np.zeros(3)).all():
+    if (result == np.zeros(3)).all():
         raise ValueError(f"Normalization of axis '{label}' produced a zero vector: {vec}")
     return result
 

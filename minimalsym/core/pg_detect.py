@@ -25,7 +25,7 @@ from .constants import IH_C2_C3_ANGLE, IH_ANGLE_TOL, PRINT_WARNINGS
 
 from .rotation_detection import (
     _find_rotation_sets, _find_rotations, _linear_mol_axis,
-    _find_a_c2, _is_there_ortho_c2, _num_C2, _highest_order_axis,
+    _find_a_c2, _is_there_ortho_c2, _num_C2,
     validate_cn_subrotations, validate_sn_subrotations
 )
 from .reflection_detection import (
@@ -33,6 +33,7 @@ from .reflection_detection import (
 )
 from .special_geometry import _find_C3s_for_Ih, _find_C4s_for_Oh
 
+from .numba_utils import to_typed_list
 
 # ── Result type ───────────────────────────────────────────────────────────────
 
@@ -59,12 +60,11 @@ class PointGroupResult:
 
 # ── Private classifier helpers ────────────────────────────────────────────────
 
-def _classify_linear(mol, positions, masses, geom_tol):
+def _classify_linear(positions, masses, geom_tol):
     """Classify a linear molecule (Ia ~= 0). Returns PointGroupResult."""
-    paxis = _linear_mol_axis(mol)
+    paxis = _linear_mol_axis(positions)
     pg = "D0h" if transform_isequivalent(positions, masses, geom_tol, inversion_matrix()) else "C0v"
     return PointGroupResult(pg=pg, paxis=paxis, saxis=np.zeros(3))
-
 
 def _classify_spherical_top(mol, positions, masses, geom_tol):
     """
@@ -73,13 +73,14 @@ def _classify_spherical_top(mol, positions, masses, geom_tol):
     Returns PointGroupResult.
     """
     seas = find_SEAs(mol)
-    num_C2 = _num_C2(mol, seas)
-    if num_C2 is None:
+    list_sea_subset = to_typed_list([sea.subset for sea in seas])
+    axes = _num_C2(positions, masses, geom_tol, list_sea_subset, 15)
+    n = len(axes)
+    if n == 0:
         if PRINT_WARNINGS:
-            warnings.warn("Molecule was wrongly classified as a spherical top, (num_C2 is None), probably due to high eigen_tol. " \
+            warnings.warn("Molecule was wrongly classified as a spherical top, (num_C2 couldn't find any C2 axis), probably due to high eigen_tol. " \
                 "Process will continue as general symmetry.")
         return _classify_general(mol, positions, masses, geom_tol)
-    n, axes = num_C2
     invertable = transform_isequivalent(positions, masses, geom_tol, inversion_matrix())
     is_spherical = True
 
@@ -87,7 +88,7 @@ def _classify_spherical_top(mol, positions, masses, geom_tol):
         # Icosahedral: paxis = C5 axis, saxis = C2 axis from golden-ratio geometry.
         try:
             c2_axis = axes[0]
-            c3s = _find_C3s_for_Ih(mol)
+            c3s = _find_C3s_for_Ih(mol, seas)
             saxis = np.zeros(3)
             for c3 in c3s:
                 if np.isclose(np.arccos(abs(np.dot(c3, c2_axis))), IH_C2_C3_ANGLE, atol=IH_ANGLE_TOL):
@@ -103,7 +104,7 @@ def _classify_spherical_top(mol, positions, masses, geom_tol):
     elif n == 9:
         # Octahedral: paxis and saxis are two orthogonal C4 axes.
         try:
-            c4s = _find_C4s_for_Oh(mol)
+            c4s = _find_C4s_for_Oh(mol, seas)
             paxis, saxis, taxis = c4s[0], c4s[1], c4s[2]
 
             c3s = np.array([
@@ -130,8 +131,8 @@ def _classify_spherical_top(mol, positions, masses, geom_tol):
             paxis, saxis, taxis = axes[0], axes[1], axes[2]
 
             # Detect reflection symmetry (any sigma plane)
-            sigmav_chk, _ = _is_there_sigmav(mol, seas, paxis)
-            sigmah_chk = _is_there_sigmah(mol, paxis)
+            sigmav_chk, _ = _is_there_sigmav(positions, masses, geom_tol, list_sea_subset, paxis)
+            sigmah_chk = _is_there_sigmah(positions, masses, geom_tol, paxis)
 
             # Detect improper rotation S4 (characteristic of Td/Th)
             S4 = Sn(paxis, 4)
@@ -193,15 +194,16 @@ def _validate_all_sigmav(positions, masses, geom_tol, paxis, sigmav, Cn_order):
             return False
     return True
 
-def _classify_subfamily(mol, seas, positions, masses, geom_tol, paxis, Cn_order):
+def _classify_subfamily(seas, positions, masses, geom_tol, paxis, Cn_order):
     """
     Determine the point-group subfamily (h/v/d/S2n/pure) once paxis and
     Cn_order are known. Returns the full Schoenflies symbol and updated saxis.
     """
     saxis = np.zeros(3)
-    ortho_c2_chk, c2_ortho = _is_there_ortho_c2(mol, seas, paxis)
-    sigmav_chk, sigmav = _is_there_sigmav(mol, seas, paxis)
-    sigmah_chk = _is_there_sigmah(mol, paxis)
+    list_sea_subset = to_typed_list([sea.subset for sea in seas])
+    ortho_c2_chk, c2_ortho = _is_there_ortho_c2(positions, masses, geom_tol, list_sea_subset, paxis)
+    sigmav_chk, sigmav = _is_there_sigmav(positions, masses, geom_tol, list_sea_subset, paxis)
+    sigmah_chk = _is_there_sigmah(positions, masses, geom_tol, paxis)
     inversion_chk = transform_isequivalent(positions, masses, geom_tol, inversion_matrix())
     if sigmah_chk:
         sn_chk = validate_sn_subrotations(Cn_order, paxis, positions, masses, geom_tol, sigmah_chk)
@@ -241,9 +243,9 @@ def _classify_subfamily(mol, seas, positions, masses, geom_tol, paxis, Cn_order)
         pg = "C" + str(Cn_order) + "h"
     elif sigmav_chk:
         pg = "C" + str(Cn_order) + "v"
-        if mol_is_planar(mol):
-            saxis = _planar_mol_axis(mol)
-        elif sigmav is not None and hasattr(sigmav, '__len__') and any(sigmav):
+        if mol_is_planar(positions, geom_tol):
+            saxis = _planar_mol_axis(positions)
+        elif not (sigmav == np.zeros(3)).all() and hasattr(sigmav, '__len__') and any(sigmav):
             saxis = normalize(np.cross(paxis, sigmav))
     else:
         s2n_chk = validate_sn_subrotations(Cn_order * 2, paxis, positions, masses, geom_tol)
@@ -253,7 +255,6 @@ def _classify_subfamily(mol, seas, positions, masses, geom_tol, paxis, Cn_order)
             pg = "C" + str(Cn_order)
 
     return pg, saxis
-
 
 def _classify_general(mol, positions, masses, geom_tol):
     """
@@ -266,24 +267,25 @@ def _classify_general(mol, positions, masses, geom_tol):
     rots = _find_rotations(mol, rot_set)
 
     if len(rots) >= 1:
-        Cn_order = _highest_order_axis(rots)
+        Cn_order = rots[0].order
         paxis = rots[0].axis
     else:
-        c2 = _find_a_c2(mol, seas)
-        if c2 is None:
+        list_sea_subset = to_typed_list([sea.subset for sea in seas])
+        c2 = _find_a_c2(positions, masses, geom_tol, list_sea_subset)
+        if (c2 == np.zeros(3)).all():
             # No proper rotation -> Ci, Cs, or C1.
             if transform_isequivalent(positions, masses, geom_tol, inversion_matrix()):
                 return PointGroupResult(pg="Ci", paxis=paxis, saxis=np.zeros(3))
-            sigmav_chk, sigmav = _is_there_sigmav(mol, seas, np.zeros(3))
+            sigmav_chk, sigmav = _is_there_sigmav(positions, masses, geom_tol, list_sea_subset, np.zeros(3))
             if sigmav_chk:
-                if sigmav is not None:
+                if not (sigmav == np.zeros(3)).all():
                     paxis = sigmav
                 return PointGroupResult(pg="Cs", paxis=paxis, saxis=np.zeros(3))
             return PointGroupResult(pg="C1", paxis=paxis, saxis=np.zeros(3))
         paxis = c2
         Cn_order = 2
 
-    pg, saxis = _classify_subfamily(mol, seas, positions, masses, geom_tol, paxis, Cn_order)
+    pg, saxis = _classify_subfamily(seas, positions, masses, geom_tol, paxis, Cn_order)
     return PointGroupResult(pg=pg, paxis=paxis, saxis=saxis)
 
 # ── Public API ────────────────────────────────────────────────────────────────
@@ -344,7 +346,7 @@ def find_point_group(mol):
     Ia_mol, Ib_mol, Ic_mol = evals_mol[_idx]
 
     if inertia_isclose(Ia_mol, 0.0, atol=geom_tol, rtol=eigen_tol):
-        return _classify_linear(mol, positions, masses, geom_tol)
+        return _classify_linear(positions, masses, geom_tol)
 
     elif inertia_isclose(Ia_mol, Ib_mol, atol=geom_tol, rtol=eigen_tol) and inertia_isclose(Ia_mol, Ic_mol, atol=geom_tol, rtol=eigen_tol):
         return _classify_spherical_top(mol, positions, masses, geom_tol)

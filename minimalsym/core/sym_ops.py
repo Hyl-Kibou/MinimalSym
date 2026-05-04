@@ -1,6 +1,7 @@
 import numpy as np
 from .constants import NUMERICAL_TOL as global_tol
-from numba import njit
+from numba.typed import List
+from numba import njit, types
 
 @njit(cache=True)
 def rotation_matrix(axis, theta):
@@ -168,8 +169,6 @@ def issame_axis(a, b, tol=global_tol):
     """
     A_vector = normalize(a)
     B_vector = normalize(b)
-    if A_vector is None or B_vector is None:
-        return False
     if (A_vector == np.zeros(3)).all() or (B_vector == np.zeros(3)).all():
         return False
     d = np.abs(np.dot(A_vector, B_vector))
@@ -348,3 +347,23 @@ def generate_cyclic_axes(static_axis:np.ndarray, saxis:np.ndarray, n:int, num_el
         rotated_axes[ii, :] = normalize(rotated_axis)
 
     return rotated_axes
+
+@njit(cache=True)
+def get_unique_axes(axes) -> list[np.ndarray]:
+    unique_axes = List.empty_list(types.float64[:])
+    for i in axes:
+        check = True
+        for j in unique_axes:
+            if issame_axis(i, j):
+                check = False
+                break
+        if check:
+            unique_axes.append(i)
+    return unique_axes
+
+@njit(cache=True)
+def mean_axis_0_numba(arr):
+    res = np.zeros(arr.shape[1])
+    for j in range(arr.shape[1]):
+        res[j] = arr[:, j].mean()
+    return res
