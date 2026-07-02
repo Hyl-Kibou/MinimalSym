@@ -1,5 +1,5 @@
 28
-Properties=species:S:1:pos:R:3 12.00000000=T LJ028_00019_0053=T num=MinimalSym/test/sxyz/T.xyz0-0 tol=1e-12 pg=T pbc="F F F"
+Properties=species:S:1:pos:R:3 12.00000000=T LJ028_00019_0053=T num=MolSymPy/test/sxyz/T.xyz0-0 tol=1e-12 pg=T pbc="F F F"
 Mo       1.33061179       3.15717904       0.80143066
 Mo      -1.16540104       3.60791623       2.27772603
 Mo      -3.60791623      -2.27772603      -1.16540104

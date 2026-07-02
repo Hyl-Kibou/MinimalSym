@@ -2,7 +2,7 @@
 
 ## Symmetrize
 
-This diagram summarizes the symmetrization algorithm used in MinimalSym.
+This diagram summarizes the symmetrization algorithm used in MolSymPy.
 
 It shows how symmetry descriptors (Symtext) are constructed,
 symmetry-equivalent atom groups (SEAs) are processed, projected onto

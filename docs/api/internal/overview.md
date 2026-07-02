@@ -1,6 +1,6 @@
 # Internal API Overview
 
-This section documents the internal architecture of MinimalSym.
+This section documents the internal architecture of MolSymPy.
 
 The internal API implements the full symmetry pipeline, from **point group detection**
 to **symmetry-aware geometry transformation** and **candidate generation**.
@@ -12,7 +12,7 @@ to **symmetry-aware geometry transformation** and **candidate generation**.
 
 ## Architecture Overview
 
-MinimalSym is organized into three conceptual layers:
+MolSymPy is organized into three conceptual layers:
 
 * [Public API](../public.md)
 * [API Helpers (validation, symmetrization workflow)](api_helpers.md)
@@ -40,10 +40,10 @@ See: [API helpers](api_helpers.md)
 
 Determine the point group of a molecule
 
-* [pg_detect][minimalsym.core.pg_detect]
-* [rotation_detection][minimalsym.core.rotation_detection]
-* [reflection_detection][minimalsym.core.reflection_detection]
-* [special_geometry][minimalsym.core.special_geometry]
+* [pg_detect][molsympy.core.pg_detect]
+* [rotation_detection][molsympy.core.rotation_detection]
+* [reflection_detection][molsympy.core.reflection_detection]
+* [special_geometry][molsympy.core.special_geometry]
 
 ---
 
@@ -51,10 +51,10 @@ Determine the point group of a molecule
 
 Encode symmetry in a structured form
 
-* [symel][minimalsym.core.symel]
-* [symel_gen][minimalsym.core.symel_gen]
-* [point_group][minimalsym.core.point_group]
-* [symtext][minimalsym.core.symtext]
+* [symel][molsympy.core.symel]
+* [symel_gen][molsympy.core.symel_gen]
+* [point_group][molsympy.core.point_group]
+* [symtext][molsympy.core.symtext]
 
 ---
 
@@ -62,9 +62,9 @@ Encode symmetry in a structured form
 
 Build symmetry elements from group definitions
 
-* [cyclic_dihedral][minimalsym.core.cyclic_dihedral]
-* [cubic_icosahedral][minimalsym.core.cubic_icosahedral]
-* [group_algebra][minimalsym.core.group_algebra]
+* [cyclic_dihedral][molsympy.core.cyclic_dihedral]
+* [cubic_icosahedral][molsympy.core.cubic_icosahedral]
+* [group_algebra][molsympy.core.group_algebra]
 
 ---
 
@@ -72,9 +72,9 @@ Build symmetry elements from group definitions
 
 Manipulate and analyze molecular coordinates
 
-* [mol_ops][minimalsym.core.mol_ops]
-* [mol_orient][minimalsym.core.mol_orient]
-* [atom_mapping][minimalsym.core.atom_mapping]
+* [mol_ops][molsympy.core.mol_ops]
+* [mol_orient][molsympy.core.mol_orient]
+* [atom_mapping][molsympy.core.atom_mapping]
 
 ---
 
@@ -82,7 +82,7 @@ Manipulate and analyze molecular coordinates
 
 Generate compatible subgroups and symmetry candidates
 
-* [pg_decompose][minimalsym.core.pg_decompose]
+* [pg_decompose][molsympy.core.pg_decompose]
 
 ---
 
@@ -90,8 +90,8 @@ Generate compatible subgroups and symmetry candidates
 
 Low-level numerical and algebraic helpers
 
-* [sym_ops][minimalsym.core.sym_ops]
-* [constants][minimalsym.core.constants]
+* [sym_ops][molsympy.core.sym_ops]
+* [constants][molsympy.core.constants]
 
 ---
 

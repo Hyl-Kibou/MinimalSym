@@ -1,5 +1,6 @@
 """
-minimalsym.py — Public API for molecular symmetry analysis.
+api.py — Public API for molecular symmetry analysis.
+01/07/2026 20:17 change in union-find, README and addition of collections
 """
 
 import numpy as np
@@ -15,7 +16,10 @@ from .core.mol_ops import transform
 
 from ase import Atoms
 
-__all__ = ["get_point_group", "is_planar", "get_inequivalent", "symmetrize", "generate_symmetry_candidates", "SymmetryResult"]
+__all__ = [
+    "get_point_group", "is_planar", "get_inequivalent",
+    "symmetrize", "generate_symmetry_candidates", "SymmetryResult",
+]
 
 # ── Input validation ───────────────────────────────────────────────────────────
 
@@ -205,6 +209,8 @@ def is_planar(mol: Atoms, geom_tol: float = 0.05) -> bool:
     ValueError
         geom_tol <= 0 or mol has fewer than 3 atoms.
     """
+    if len(mol) < 3:
+        return True
     _validate_mol(mol, geom_tol, min_atoms=3)
     mol = mol.copy()
     mol.translate(-mol.get_center_of_mass())
@@ -225,15 +231,16 @@ def _get_ancestor(parent, atom_num):
 
     Returns
     -------
-    : tuple(int, list[int])
-        (root_index, nodes_on_path_to_root)
+    : int
+        root_index
     """
-    ancestor_line = [atom_num]
+    ancestor_line = []
     while parent[atom_num] != atom_num:
-        atom_num = parent[atom_num]
         ancestor_line.append(atom_num)
-    return atom_num, ancestor_line
-
+        atom_num = parent[atom_num]
+    for children in ancestor_line:
+        parent[children] = atom_num
+    return atom_num
 
 def _union_find_pass(atom_map, parent, symel_indices):
     """
@@ -245,21 +252,33 @@ def _union_find_pass(atom_map, parent, symel_indices):
     parent : np.ndarray of int, shape (n_atoms,)  — modified in-place
     symel_indices : iterable of int
     """
+
+    rank = [0] * len(parent)
+
     for atom in range(atom_map.shape[0]):
         for s in symel_indices:
             w = atom_map[atom, s]
-            owner_w, ancestor_w = _get_ancestor(parent, w)
-            owner_atom, ancestor_atom = _get_ancestor(parent, atom)
-            for idx in ancestor_w:
-                parent[idx] = owner_atom
-            for idx in ancestor_atom:
-                parent[idx] = owner_atom
+            owner_w = _get_ancestor(parent, w)
+            owner_atom = _get_ancestor(parent, atom)
+            if(rank[owner_w] > rank[owner_atom]):
+                parent[owner_atom] = owner_w
+            elif(rank[owner_w] < rank[owner_atom]):
+                parent[owner_w] = owner_atom
+            else:
+                parent[owner_atom] = owner_w
+                rank[owner_w]+=1
                 
     # Final path-compression pass to flatten all chains
     for ii in range(len(parent)):
-        owner, ancestor = _get_ancestor(parent, ii)
-        for idx in ancestor:
-            parent[idx] = owner
+        _get_ancestor(parent, ii)
+
+    # Set the elements with the lowest value of each group as parents
+    new_leader = [-1] * len(parent)
+
+    for ii in range(len(parent)):
+        if(new_leader[parent[ii]] == -1):
+            new_leader[parent[ii]] = ii
+        parent[ii] = new_leader[parent[ii]]
 
 
 def get_inequivalent(mol_in: Atoms, geom_tol: float = 0.3, eigen_tol: float|None = None) -> tuple[np.ndarray, np.ndarray]:

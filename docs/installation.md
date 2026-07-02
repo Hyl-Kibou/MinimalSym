@@ -1,6 +1,6 @@
 # Installation
 
-MinimalSym is tested with **Python 3.12–3.13**, but should also work with **Python 3.9–3.13**.
+MolSymPy is tested with **Python 3.12–3.13**, but should also work with **Python 3.9–3.13**.
 
 ## Requirements
 
@@ -20,7 +20,7 @@ pip install ase
 ## Install from pip
 
 ```bash
-pip install minimalsym
+pip install molsympy
 ```
 
 ---
@@ -28,7 +28,7 @@ pip install minimalsym
 ## Install from source
 
 ```bash
-git clone https://github.com/hyl-kibou/minimalsym.git
-cd minimalsym
+git clone https://github.com/hyl-kibou/molsympy.git
+cd molsympy
 pip install -e .
 ```

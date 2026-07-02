@@ -26,7 +26,7 @@ The API layer is responsible for:
 
 ---
 
-::: minimalsym.api
+::: molsympy.api
     options:
       filters:
       - "^_"

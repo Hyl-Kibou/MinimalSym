@@ -1,15 +1,15 @@
 
-::: minimalsym.core.mol_ops
+::: molsympy.core.mol_ops
     options:
         filters: false
         summary: false
 
-::: minimalsym.core.mol_orient
+::: molsympy.core.mol_orient
     options:
         filters: false
         summary: false
 
-::: minimalsym.core.atom_mapping
+::: molsympy.core.atom_mapping
     options:
         filters: false
         summary: false

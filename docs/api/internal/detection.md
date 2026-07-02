@@ -1,20 +1,20 @@
 
-::: minimalsym.core.pg_detect
+::: molsympy.core.pg_detect
     options:
         filters: false
         summary: false
 
-::: minimalsym.core.rotation_detection
+::: molsympy.core.rotation_detection
     options:
         filters: false
         summary: false
 
-::: minimalsym.core.reflection_detection
+::: molsympy.core.reflection_detection
     options:
         filters: false
         summary: false
 
-::: minimalsym.core.special_geometry
+::: molsympy.core.special_geometry
     options:
         filters: false
         summary: false

@@ -1,187 +1,187 @@
-# MinimalSym – Molecular Symmetry Tools for Python
+# MolSymPy
 
-![Python](https://img.shields.io/badge/python-3.9+-blue)
+![Python](https://img.shields.io/badge/python-3.10+-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![PyPI](https://img.shields.io/pypi/v/minimalsym)
+![PyPI](https://img.shields.io/pypi/v/molsympy)
 
-**MinimalSym** is a Python package for molecular symmetry analysis in **Atomic Simulation Environment** **(ASE)** `Atoms` objects, including structure symmetrization.
-It provides fast, geometry-based symmetry detection and manipulation,
-designed to integrate seamlessly into existing ASE workflows.
-
-Internally, MinimalSym constructs symmetry operations and atom mappings,
-then projects atomic positions onto symmetry elements to enforce exact symmetry.
-
----
+**MolSymPy** is an open-source Python package for molecular symmetry analysis in atomistic simulations. It is built natively on top of the [Atomic Simulation Environment (ASE)](https://wiki.fysik.dtu.dk/ase/) and operates directly on `ase.Atoms` objects, enabling seamless integration with atomistic simulation workflows.
 
 ## Features
 
-* **Point group detection:** Detect common point groups for molecules based on their geometry.
-* **Molecule symmetrization:** Apply symmetry operations to molecules, aligning them to the detected point group.
-* **Find symmetry-inequivalent atoms:** Atoms are grouped if any symmetry operation (proper or improper) maps one onto the other.
-* **ASE Atoms-native workflow:** Directly integrates with ASE Atoms objects, enabling smooth use in existing workflows.
+- **Geometric idealization** — project nearly-symmetric structures onto their exact symmetry elements and orient the molecular frame by aligning principal and secondary symmetry axes with the Cartesian coordinate system.
+- **Point group detection** — identify molecular point groups in Schoenflies notation, including the two infinite-order linear groups (C∞v and D∞h).
+- **Symmetry-inequivalent atoms** — determine symmetry-inequivalent atoms using a path-compressed union-find algorithm operating on the complete symmetry permutation map.
+- **Reference database** — companion collection of molecular and atomic-cluster geometries spanning the principal point groups, available in both raw and idealized forms.
 
----
-
-## Scope and limitations
-
-- Works on **finite molecules** (no periodic structure support)
-- Uses **geometric tolerance-based** symmetry detection
-- Results depend on the chosen `geom_tol`
-
----
-
-## Supported point groups
-
-Point groups are classifications of molecules based on their symmetry operations.
-MinimalSym can detect the following common molecular point groups:
-
-- C₁, Cₛ, Cᵢ
-- Cₙ, Cₙᵥ, Cₙₕ
-- Dₙ, Dₙₕ, Dₙd
-- Sₙ
-- T, T_h, T_d
-- O, O_h
-- I, I_h
-- C0v, D0h
-
-Detection depends on the symmetry present in the input geometry
-and the tolerance used during symmetry detection.
-
----
-
-## API Overview
-
-- `symmetrize(mol, geom_tol=...) -> Atoms`
-- `get_point_group(mol, geom_tol=...) -> str`
-- `is_planar(mol, geom_tol=...) -> bool`
-- `get_inequivalent(mol, geom_tol=...) -> (unique, parent)`
-
----
+Performance-critical routines are accelerated through [Numba](https://numba.readthedocs.io/) just-in-time compilation, providing efficient execution with no compilation requirements at install time.
 
 ## Installation
 
-MinimalSym is tested with **Python 3.12–3.13**, but should also work with **Python 3.9–3.13**.
-
 ```bash
-pip install minimalsym
+pip install molsympy
 ```
 
----
+**Requirements:** Python ≥ 3.10, NumPy ≥ 1.24, Numba ≥ 0.61, ASE ≥ 3.22.
 
-## Quick Examples
+## Quick start
 
-### Symmetrize a molecule's geometry and detect its point group
-
-An ASE `Atoms` object is passed to the function and a new symmetrized
-`Atoms` object is returned.
-
-The returned object includes metadata such as the detected point group.
+### Point group detection
 
 ```python
-from ase import Atoms
-import numpy as np
-from minimalsym import symmetrize
+from ase.build import molecule
+from molsympy import get_point_group
 
-## Set positions for molecule
-theta = np.radians(104.5)
-
-positions = np.array([
-    [0.0, 0.0, 0.0],
-    [0.958, 0.0, 0.0],
-    [0.958 * np.cos(theta), 0.958 * np.sin(theta), 0.0]
-])
-
-## Create Atoms object
-mol = Atoms(symbols=["O", "H", "H"], positions=positions)
-
-## Symmetrize molecule
-mol_symmetric = symmetrize(mol, geom_tol=0.05)
-
-## Check output
-print("Detected Point group: ", mol_symmetric.info["pg"])
-# Example output: "Detected Point group: C2v"
-# Symmetrized positions:
-# [[ 0.     0.     0.066]
-#  [-0.    -0.757 -0.521]
-#  [ 0.     0.757 -0.521]]
+cyclopropane = molecule('C3H6_D3h')
+print(get_point_group(cyclopropane))  # D3h
 ```
 
----
-
-### Detecting a point group
-
-An ASE `Atoms` object is passed to the function and a `string` with the
-point group of the molecule is returned.
+### Symmetry-inequivalent atoms
 
 ```python
-from minimalsym import get_point_group
+from molsympy.collections import symmetrized
+from molsympy import get_inequivalent
 
-## Detect point group for molecule
-pg_str = get_point_group(mol, geom_tol=0.05)
-
-## Check output
-print("Detected Point group: ", pg_str)
-# Example output: "Detected Point group: C2v"
+mol = symmetrized['C3h_1']
+unique, parent = get_inequivalent(mol, geom_tol=0.05, eigen_tol=0.01)
+print(unique)   # [0, 1, 2, 9, 10]
+print(parent)   # [0, 1, 2, 1, 0, 2, 1, 0, 2, 9, 10, 9, 10, 9, 10]
 ```
 
----
-
-### Checking planarity
-
-An ASE `Atoms` object is passed to the function and a `bool` is returned.
-True if the molecule passed has planarity.
+### Symmetrization
 
 ```python
-from minimalsym import is_planar
+from molsympy.collections import unsymmetrized
+from molsympy import symmetrize, get_point_group
 
-## Check planarity for molecule
-mol_is_planar = is_planar(mol, geom_tol=0.05)
+atoms = unsymmetrized['C0v_1']   # by point-group key
+atoms = unsymmetrized['CNH']     # equivalent: lookup by molecular formula
+print(atoms.positions)
 
-## Check output
-print("Mol is planar: ", mol_is_planar)
-# Example output: "Mol is planar: True"
+sym = symmetrize(atoms)
+print(sym.positions)          # Lst of atomic coordinates
+print(get_point_group(sym))   # C0v
 ```
 
----
-
-### Get symmetry-inequivalent atoms
-
-Find symmetry-inequivalent atoms using all symmetry operations.
-
-Two atoms are in the same equivalence class if any symmetry operation (proper or improper) maps one onto the other.
-
-An ASE `Atoms` object is passed to the function and a `tuple` is returned.
-
-Returns: `(unique, parent)`
-
-&nbsp; &nbsp; `unique` : sorted representative atom indices (one per equivalence class).
-
-&nbsp; &nbsp; `parent` : array where `parent[i]` gives the representative of atom `i`
+### Symmetry candidates (subgroup fan-out)
 
 ```python
-from minimalsym import get_inequivalent
+from ase.build import molecule
+from molsympy import generate_symmetry_candidates
 
-## Get symmetry-inequivalent atoms for molecule
-atom_indices_list, parent_mapping = get_inequivalent(mol, geom_tol=0.3)
-
-## Check output
-print("Inequivalent indices list: ", atom_indices_list)
-# Example output: "Inequivalent indices list: [0 1 2]"
-
-print("Parent mapping: ", parent_mapping)
-# Example output: Parent mapping: [0 1 2 0 0 1 1 1 1 2 2 1]"
+benzene = molecule('C6H6')                      # D6h
+for s in generate_symmetry_candidates(benzene):
+    print(s.pg, s.rmsd)                         # D6h, D3h, C6h, C6v, ...
 ```
 
+## API reference
+
+### `get_point_group(mol, geom_tol=0.05, eigen_tol=None) → str`
+
+Determine the point group of a molecule.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `mol` | `ase.Atoms` | Input molecule. |
+| `geom_tol` | `float` | Geometric tolerance in Å (default `0.05`). |
+| `eigen_tol` | `float \| None` | Relative tolerance for moment-of-inertia eigenvalues. Estimated automatically when `None`. |
+
+Returns the Schoenflies symbol as a string (e.g. `"C2v"`, `"D3h"`, `"Oh"`).
+
 ---
 
-## Acknowledgments
+### `symmetrize(mol, geom_tol=0.05, eigen_tol=None) → ase.Atoms`
 
-This package is based on and inspired by
-[NASymmetry / MolSym](https://github.com/NASymmetry/MolSym),
-modified to focus on core symmetry functionality.
+Project a nearly-symmetric structure onto exact point-group symmetry.
+
+Each set of symmetry-equivalent atoms (SEA) is handled by projecting a representative atom onto the symmetry element that fixes it, then mapping the remaining SEA members via the stored matrix representation of the connecting symmetry operation.
 
 ---
+
+### `get_inequivalent(mol, geom_tol=0.3, eigen_tol=None) → (np.ndarray, np.ndarray)`
+
+Find symmetry-inequivalent atoms.
+
+Returns `(unique, parent)` where `unique` contains one representative index per equivalence class and `parent[i]` is the representative of atom `i`.
+
+---
+
+### `is_planar(mol, geom_tol=0.05) → bool`
+
+Check whether all atoms lie in a common plane.
+
+---
+
+### `generate_symmetry_candidates(mol, geom_tol=0.05, eigen_tol=None, sort_by=0) → list[SymmetryResult]`
+
+Generate symmetry-consistent geometries for all subgroups compatible with the detected point group.
+
+Each `SymmetryResult` contains:
+- `mol` — the symmetrized `ase.Atoms` object
+- `pg` — the Schoenflies symbol
+- `rmsd` — RMSD (Å) between original and symmetrized structure
+
+`sort_by=0` sorts by group size (descending) then RMSD (ascending); `sort_by=1` sorts by RMSD first.
+
+## Reference database
+
+MolSymPy ships a companion database of molecular and atomic-cluster geometries indexed by point group:
+
+```python
+from molsympy.collections import symmetrized, unsymmetrized
+
+# List available structures
+print(unsymmetrized.names)   # ['C0v_1', 'C0v_2', ..., 'Td_3']
+print(symmetrized.names)     # ['C0v_1', 'C0v_2', ..., 'Td_3']
+
+# Load a structure by key  ('<PointGroup>_<index>')
+mol_u = unsymmetrized['C3h_1']
+mol_s = symmetrized['C3h_1']
+
+# Iterate over all structures in a collection
+for name in symmetrized.names:
+    atoms = symmetrized[name]
+```
+
+The two collections are:
+
+| Object | Content |
+|--------|---------|
+| `symmetrized` | Idealized geometries with exact point-group symmetry |
+| `unsymmetrized` | Raw geometries with slight numerical distortions |
+
+### Lookup by molecular formula
+
+Every structure in the database can also be retrieved by its molecular formula.
+The key and the formula are interchangeable in all collection operations:
+
+```python
+from molsympy.collections import symmetrized, unsymmetrized
+
+# These two calls return the same structure
+atoms = unsymmetrized['C0v_1']
+atoms = unsymmetrized['CNH']     # equivalent
+
+# Works with both collections
+mol_u = unsymmetrized['H2O']     # same as unsymmetrized['C2v_1']
+mol_s = symmetrized['H2O']       # same as symmetrized['C2v_1']
+
+# List all available formulas
+print(unsymmetrized.formulas)    # ['AgC68N4H76O4', 'AuC18P2N6H24', …, 'ZrSi7C24H52']
+```
+
+The formula stored for each entry is the one embedded in the ``.npz`` database.
+Each structure carries exactly one formula alias; looking up by key always works
+regardless of whether a formula is defined.
 
 ## License
 
-Distributed under the MIT License. See `LICENSE` for details.
+MIT — see [LICENSE](LICENSE).
+
+## Authors
+
+- Sebastian Hernandez-Gutierrez — Departamento de Física Aplicada, Cinvestav-IPN, Mérida, México
+- Diego Roman-Montalvo — Departamento de Física Aplicada, Cinvestav-IPN, Mérida, México
+- Gabriel Merino — Departamento de Física Aplicada, Cinvestav-IPN, Mérida, México
+- Filiberto Ortiz-Chi — Secihti-Departamento de Física Aplicada, Cinvestav-IPN, Mérida, México
+
+If you use MolSymPy in your research, please cite the associated manuscript

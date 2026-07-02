@@ -1,14 +1,14 @@
-# MinimalSym
+# MolSymPy
 
-![PyPI](https://img.shields.io/pypi/v/minimalsym)
-![Python](https://img.shields.io/pypi/pyversions/minimalsym)
+![PyPI](https://img.shields.io/pypi/v/molsympy)
+![Python](https://img.shields.io/pypi/pyversions/molsympy)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-**MinimalSym** is a Python package for molecular symmetry analysis in **Atomic Simulation Environment** **(ASE)** `Atoms` objects, including structure symmetrization.
+**MolSymPy** is a Python package for molecular symmetry analysis in **Atomic Simulation Environment** **(ASE)** `Atoms` objects, including structure symmetrization.
 It provides fast, geometry-based symmetry detection and manipulation,
 designed to integrate seamlessly into existing ASE workflows.
 
-Internally, MinimalSym constructs symmetry operations and atom mappings,
+Internally, MolSymPy constructs symmetry operations and atom mappings,
 then projects atomic positions onto symmetry elements to enforce exact symmetry.
 
 ---
@@ -16,7 +16,7 @@ then projects atomic positions onto symmetry elements to enforce exact symmetry.
 ## Installation
 
 ```bash
-pip install minimalsym
+pip install molsympy
 ```
 See the [Installation](installation.md) page for details.
 
@@ -24,20 +24,20 @@ See the [Installation](installation.md) page for details.
 
 ## Getting started
 
-MinimalSym is a Python package that provides essential symmetry 
+MolSymPy is a Python package that provides essential symmetry 
 functionality for molecules represented as ASE `Atoms` objects.
 
-Follow the steps below to quickly set up and use MinimalSym with ASE.
+Follow the steps below to quickly set up and use MolSymPy with ASE.
 
 ### Install the necessary libraries
 ```bash
-pip install minimalsym ase
+pip install molsympy ase
 ```
 
 ### Symmetrize a molecule
 ```python
 from ase.build import molecule
-from minimalsym import symmetrize
+from molsympy import symmetrize
 
 ## Create Atoms object.
 mol = molecule("H2O")
@@ -49,7 +49,7 @@ mol_symmetric = symmetrize(mol)
 print(mol_symmetric.info["pg"])
 ```
 
-For further examples and details on how to use MinimalSym,
+For further examples and details on how to use MolSymPy,
 see the [Usage](usage/examples.md) and [API](api/index.md) pages.
 
 ---
@@ -74,7 +74,7 @@ see the [Usage](usage/examples.md) and [API](api/index.md) pages.
 ## Supported point groups
 
 Point groups are classifications of molecules based on their symmetry operations.
-MinimalSym can detect the following common molecular point groups:
+MolSymPy can detect the following common molecular point groups:
 
 - C₁, Cₛ, Cᵢ
 - Cₙ, Cₙᵥ, Cₙₕ
@@ -117,6 +117,6 @@ Distributed under the MIT License. See `LICENSE` for details.
 
 ## Contributing
 
-If you find MinimalSym useful or have suggestions for improvement,
+If you find MolSymPy useful or have suggestions for improvement,
 please feel free to open an issue or pull request on 
-[GitHub](https://github.com/hyl-kibou/minimalsym).
+[GitHub](https://github.com/hyl-kibou/molsympy).

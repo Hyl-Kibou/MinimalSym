@@ -18,7 +18,7 @@ The returned object includes metadata such as the detected point group.
 ```python hl_lines="18"
 from ase import Atoms
 import numpy as np
-from minimalsym import symmetrize
+from molsympy import symmetrize
 
 ## Set positions for molecule
 theta = np.radians(104.5)
@@ -47,22 +47,22 @@ print("Detected Point group: ", mol_symmetric.info["pg"])
 For a deeper understanding of how symmetrization works internally,
 see the [Symmetrize Algorithm Flowchart](../flowchart.md#symmetrize).
 
-See: [`symmetrize` API][minimalsym.api.symmetrize]
+See: [`symmetrize` API][molsympy.api.symmetrize]
 
 ---
 
 ## Generate alternative symmetry candidates
 
-An ASE `Atoms` object is passed to the function and a list of [SymmetryResult][minimalsym.api.SymmetryResult] is returned.
+An ASE `Atoms` object is passed to the function and a list of [SymmetryResult][molsympy.api.SymmetryResult] is returned.
 
-The data in [SymmetryResult][minimalsym.api.SymmetryResult] can be accessed through the attributes:
+The data in [SymmetryResult][molsympy.api.SymmetryResult] can be accessed through the attributes:
 
 * `mol`
 * `pg`
 * `rmsd`
 
 ```python hl_lines="4"
-from minimalsym import generate_symmetry_candidates
+from molsympy import generate_symmetry_candidates
 
 ## Get candidate symetries of mol
 candidate_symmetries = generate_symmetry_candidates(mol, geom_tol=0.5)
@@ -82,7 +82,7 @@ for elem in candidate_symmetries:
     # ...
 ```
 
-See: [`generate_symmetry_candidates` API][minimalsym.api.generate_symmetry_candidates]
+See: [`generate_symmetry_candidates` API][molsympy.api.generate_symmetry_candidates]
 
 ---
 
@@ -92,7 +92,7 @@ An ASE `Atoms` object is passed to the function and a `string` with the
 point group of the molecule is returned.
 
 ```python hl_lines="4"
-from minimalsym import get_point_group
+from molsympy import get_point_group
 
 ## Detect point group for molecule
 pg_str = get_point_group(mol, geom_tol=0.05)
@@ -102,7 +102,7 @@ print("Detected Point group: ", pg_str)
 # Example output: "Detected Point group: C2v"
 ```
 
-See: [`get_point_group` API][minimalsym.api.get_point_group]
+See: [`get_point_group` API][molsympy.api.get_point_group]
 
 ---
 
@@ -112,7 +112,7 @@ An ASE `Atoms` object is passed to the function and a `bool` is returned.
 True if the molecule passed has planarity.
 
 ```python hl_lines="4"
-from minimalsym import is_planar
+from molsympy import is_planar
 
 ## Check planarity for molecule
 mol_is_planar = is_planar(mol, geom_tol=0.05)
@@ -122,7 +122,7 @@ print("Mol is planar: ", mol_is_planar)
 # Example output: "Mol is planar: True"
 ```
 
-See: [`is_planar` API][minimalsym.api.is_planar]
+See: [`is_planar` API][molsympy.api.is_planar]
 
 ---
 
@@ -141,7 +141,7 @@ Returns: `(unique, parent)`
 &nbsp; &nbsp; `parent` : array where `parent[i]` gives the representative of atom `i`
 
 ```python hl_lines="4"
-from minimalsym import get_inequivalent
+from molsympy import get_inequivalent
 
 ## Get symmetry-inequivalent atoms for molecule
 atom_indices_list, parent_mapping = get_inequivalent(mol, geom_tol=0.3)
@@ -154,7 +154,7 @@ print("Parent mapping: ", parent_mapping)
 # Example output: Parent mapping: [0 1 2 0 0 1 1 1 1 2 2 1]"
 ```
 
-See: [`get_inequivalent` API][minimalsym.api.get_inequivalent]
+See: [`get_inequivalent` API][molsympy.api.get_inequivalent]
 
 ---
 

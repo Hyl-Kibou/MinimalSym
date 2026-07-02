@@ -1,7 +1,7 @@
 # Concepts and Conventions
 
 This page introduces the core concepts, assumptions, and numerical
-conventions used throughout MinimalSym.
+conventions used throughout MolSymPy.
 
 Understanding these is important for correctly interpreting results,
 especially when working with symmetry detection and symmetrization.
@@ -65,20 +65,32 @@ require tighter relative tolerances.
 
 ## Warnings and debug output
 
-When using [`symmetrize()`][minimalsym.api.symmetrize], [`get_point_group()`][minimalsym.api.get_point_group], [`get_inequivalent()`][minimalsym.api.get_inequivalent], and
-[`generate_symmetry_candidates`][minimalsym.api.generate_symmetry_candidates], warnings and debug output may be triggered.
-Printing is controlled by the global variable `PRINT_WARNINGS`.
+When using [`symmetrize()`][molsympy.api.symmetrize], [`get_point_group()`][molsympy.api.get_point_group], [`get_inequivalent()`][molsympy.api.get_inequivalent], and
+[`generate_symmetry_candidates`][molsympy.api.generate_symmetry_candidates], warnings and debug output may be triggered.
+Printing is controlled by the python logging module.
 
+By default the debug and warning output will be hidden, the user can choose to enable the output by adding this snippet in their calling script.
 
-The user can control this behavior with the optional parameter `quiet` in the
-aforementioned functions. When `quiet` is set to True, `PRINT_WARNINGS` is
-set to False, disabling all warnings and debug output.
+```python
+import logging
+
+handler = logging.StreamHandler()
+handler.setFormatter(logging.Formatter(
+    "%(name)s - %(levelname)s - %(message)s"
+))
+
+logger = logging.getLogger("molsympy")
+logger.setLevel(logging.DEBUG)
+logger.addHandler(handler)
+logger.propagate = False
+```
+
 ---
 
 ## Core Data Structures
 
-### [PointGroup][minimalsym.core.point_group.PointGroup]
-::: minimalsym.core.point_group.PointGroup
+### [PointGroup][molsympy.core.point_group.PointGroup]
+::: molsympy.core.point_group.PointGroup
     options:    
         show_root_heading: false
         show_root_toc_entry: false
@@ -86,8 +98,8 @@ set to False, disabling all warnings and debug output.
 
 ---
 
-### [SymmetryResult][minimalsym.api.SymmetryResult]
-::: minimalsym.api.SymmetryResult
+### [SymmetryResult][molsympy.api.SymmetryResult]
+::: molsympy.api.SymmetryResult
     options:
         show_root_heading: false
         show_root_toc_entry: false
@@ -95,8 +107,8 @@ set to False, disabling all warnings and debug output.
 
 ---
 
-### [PointGroupResult][minimalsym.core.pg_detect.PointGroupResult]
-::: minimalsym.core.pg_detect.PointGroupResult
+### [PointGroupResult][molsympy.core.pg_detect.PointGroupResult]
+::: molsympy.core.pg_detect.PointGroupResult
     options:
         show_root_heading: false
         show_root_toc_entry: false
@@ -104,9 +116,9 @@ set to False, disabling all warnings and debug output.
 
 ---
 
-### [Symel][minimalsym.core.symel.Symel]
+### [Symel][molsympy.core.symel.Symel]
 
-::: minimalsym.core.symel.Symel
+::: molsympy.core.symel.Symel
     options:
         show_root_heading: false
         show_root_toc_entry: false
@@ -114,9 +126,9 @@ set to False, disabling all warnings and debug output.
 
 ---
 
-### [Symtext][minimalsym.core.symtext.Symtext]
+### [Symtext][molsympy.core.symtext.Symtext]
 
-::: minimalsym.core.symtext.Symtext
+::: molsympy.core.symtext.Symtext
     options:
         members: false
         show_root_heading: false
@@ -126,9 +138,9 @@ set to False, disabling all warnings and debug output.
 
 ---
 
-### [SEA][minimalsym.core.mol_ops.SEA] (Symmetry Equivalent Atoms)
+### [SEA][molsympy.core.mol_ops.SEA] (Symmetry Equivalent Atoms)
 
-::: minimalsym.core.mol_ops.SEA
+::: molsympy.core.mol_ops.SEA
     options:
         show_root_heading: false
         show_root_toc_entry: false
@@ -138,7 +150,7 @@ set to False, disabling all warnings and debug output.
 
 ## Output metadata
 
-MinimalSym stores symmetry information in the `Atoms.info` dictionary
+MolSymPy stores symmetry information in the `Atoms.info` dictionary
 of the returned `Atoms` object.
 
 | Key | Description |

@@ -5,7 +5,7 @@ import pytest
 import os.path
 from ase.io import read, write
 from collections import defaultdict
-from minimalsym import get_point_group
+from molsympy import get_point_group
 
 PATH = os.path.dirname(os.path.realpath(__file__))
 

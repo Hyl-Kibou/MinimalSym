@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.linalg import matrix_power
-from molsym.symtools import Cn, reflection_matrix
-from molsym.symtext.symel import Symel
+from molsympy.core.sym_ops import Cn, reflection_matrix
+from molsympy.core.symel import Symel
 
 x = np.array([1,0,0])
 y = np.array([0,1,0])

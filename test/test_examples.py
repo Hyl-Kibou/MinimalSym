@@ -2,7 +2,7 @@ from ase.io import read, write
 from ase import Atoms
 import os
 import numpy as np
-from minimalsym import symmetrize, get_point_group, is_planar, get_inequivalent, generate_symmetry_candidates
+from molsympy import symmetrize, get_point_group, is_planar, get_inequivalent, generate_symmetry_candidates
 
 PATH = os.path.dirname(os.path.realpath(__file__))
 folder_path = os.path.join(PATH, "new_xyz")

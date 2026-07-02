@@ -3,7 +3,7 @@
 """
 import os
 import numpy as np
-import minimalsym
+import molsympy
 from ase.io import read
 from ._helper import read_file
 
@@ -13,7 +13,7 @@ PATH = os.path.dirname(os.path.realpath(__file__))
 def test_formaldehyde():
     file_path = os.path.join(PATH, "xyz", f"formaldehyde.xyz")
     mol = read_file(file_path)
-    pg_obj = minimalsym.core.pg_detect.find_point_group(mol)
+    pg_obj = molsympy.core.pg_detect.find_point_group(mol)
     pg = pg_obj.pg
     paxis = pg_obj.paxis
     saxis = pg_obj.saxis
@@ -27,7 +27,7 @@ def test_formaldehyde():
 def test_collapse():
     file_path = os.path.join(PATH, "new_xyz", f"Malo_CC2Si2.xyz")
     mol = read(file_path)
-    smol = minimalsym.symmetrize(mol)
+    smol = molsympy.symmetrize(mol)
 
     for ii in range(len(smol.positions)):
         for jj in range(ii + 1, len(smol.positions)):
@@ -43,13 +43,13 @@ def test_overestimate_D_family():
 
     for path in file_path_list:
         mol = read(path)
-        smol = minimalsym.symmetrize(mol)
+        smol = molsympy.symmetrize(mol)
 
 # C0v molecules weren't properly symmetrized, they should have two rows of 0.
 def test_c0v():
     file_path = os.path.join(PATH, "new_xyz", f"error.xyz")
     listmol = read(file_path, index=':')
-    smol = minimalsym.symmetrize(listmol[0])
+    smol = molsympy.symmetrize(listmol[0])
 
     assert smol.info["pg"]=="C0v", f"Wrong point group, got: {smol.info["pg"]} expected: C0v"
     for ii in range(len(smol.positions)):
@@ -67,4 +67,4 @@ def test_different_geom_tol():
     for path in file_path_list:
         for tol in range(1, 100, 5):
             mol = read(path)
-            smol = minimalsym.symmetrize(mol, geom_tol=tol/100)
+            smol = molsympy.symmetrize(mol, geom_tol=tol/100)

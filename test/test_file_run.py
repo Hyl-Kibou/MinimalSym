@@ -1,5 +1,5 @@
 from ase.io import read, write
-from minimalsym import symmetrize
+from molsympy import symmetrize
 import numpy as np
 import os
 import pytest

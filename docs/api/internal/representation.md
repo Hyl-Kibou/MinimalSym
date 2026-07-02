@@ -1,15 +1,15 @@
 
-::: minimalsym.core.symel
+::: molsympy.core.symel
     options:
         filters: false
         summary: false
 
-::: minimalsym.core.symtext
+::: molsympy.core.symtext
     options:
         filters: false
         summary: false
 
-::: minimalsym.core.point_group
+::: molsympy.core.point_group
     options:
         filters: false
         summary: false

@@ -1,6 +1,6 @@
 # API Reference
 
-The MinimalSym API provides tools for **molecular symmetry detection,
+The MolSymPy API provides tools for **molecular symmetry detection,
 symmetrization, and symmetry exploration** based on point group theory.
 
 ---
@@ -43,7 +43,7 @@ See: [Internal Documentation](internal/overview.md)
 
 ## How the API Works
 
-At a high level, MinimalSym follows this pipeline:
+At a high level, MolSymPy follows this pipeline:
 
 ```
 Atoms
@@ -96,7 +96,7 @@ For a detailed breakdown, see:
 ## Notes
 
 * Public functions are defined in `api.py`
-* Internal modules live under `minimalsym/core`
+* Internal modules live under `molsympy/core`
 * Functions prefixed with `_` are internal by convention
 
 ---

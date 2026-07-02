@@ -1,10 +1,10 @@
-site_name: MinimalSym
+site_name: MolSymPy
 
-repo_url: https://github.com/hyl-kibou/minimalsym
-repo_name: minimalsym
+repo_url: https://github.com/hyl-kibou/molsympy
+repo_name: molsympy
 watch:
   - docs
-  - minimalsym
+  - molsympy
   - mkdocs.yml  
 
 plugins:
@@ -37,7 +37,7 @@ plugins:
             merge_init_into_class: true
             parameter_headings: false
             type_parameter_headings: true
-            preload_modules: [minimalsym]
+            preload_modules: [molsympy]
             relative_crossrefs: true
             scoped_crossrefs: true
             separate_signature: true

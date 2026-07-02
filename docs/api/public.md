@@ -5,7 +5,7 @@ see the [Algorithm Flowcharts](../flowchart.md).
 
 ---
 
-::: minimalsym.api
+::: molsympy.api
     options:
       filters:
       - public
@@ -16,7 +16,7 @@ see the [Algorithm Flowcharts](../flowchart.md).
 
 ### `symmetrize`
 
-::: minimalsym.symmetrize
+::: molsympy.symmetrize
     options:
       show_source: true
 
@@ -26,7 +26,7 @@ see the [Algorithm Flowcharts](../flowchart.md).
 
 ### `get_point_group`
 
-::: minimalsym.get_point_group
+::: molsympy.get_point_group
     options:
       show_source: true
       inherited_members: false
@@ -40,7 +40,7 @@ see the [Algorithm Flowcharts](../flowchart.md).
 
 ### `is_planar`
 
-::: minimalsym.is_planar
+::: molsympy.is_planar
     options:
       show_source: true
 

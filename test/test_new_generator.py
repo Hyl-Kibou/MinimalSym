@@ -1,8 +1,6 @@
 import pytest
-from molsym.symtext.general_irrep_mats import pg_to_symels
-from molsym.symtext.goat import mtable_check, goat_chk
-from molsym.symtext.multiplication_table import build_mult_table
-from molsym.symtools import issame_axis
+from molsympy.core.symel_gen import pg_to_symels
+from molsympy.core.sym_ops import issame_axis
 
 from .pgs.Cn import *
 from .pgs.Sn import *
@@ -27,7 +25,7 @@ pgs = [
 
 @pytest.mark.parametrize("pg", pgs)
 def test_Symel(pg):
-    symels, irreps, irrep_mats = pg_to_symels(pg)
+    symels = pg_to_symels(pg)
     symels_ans = eval(pg+"s")
     rreps = [symel.symbol for symel in symels]
     rreps_ans = [symel.symbol for symel in symels_ans]
@@ -46,14 +44,3 @@ def test_Symel(pg):
                 else:
                     assert issame_axis(symel.vector, symel_a.vector)
                 assert np.isclose(symel.rrep, symel_a.rrep).all()
-   
-    mtable = build_mult_table(symels)
-    mchk = True
-    for k in irrep_mats:
-        mtab_chk = mtable_check(k, irrep_mats[k], mtable)
-        if mtab_chk == False:
-            mchk = False
-    assert mchk
-    
-    gchk = goat_chk(irrep_mats)
-    assert gchk

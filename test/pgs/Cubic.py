@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.linalg import matrix_power
-from molsym.symtools import Cn, Sn, reflection_matrix, inversion_matrix, normalize
-from molsym.symtext.symel import Symel
+from molsympy.core.sym_ops import Cn, Sn, reflection_matrix, normalize
+from molsympy.core.symel import Symel
 
 x,y,z = np.eye(3,dtype=float)
 a_vec = normalize(np.array([ 1.0,  1.0,  1.0]))
