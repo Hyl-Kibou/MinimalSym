@@ -19,7 +19,7 @@ import numpy as np
 from dataclasses import dataclass
 import logging
 
-from .sym_ops import rotation_matrix, inversion_matrix, Sn, normalize, inertia_isclose, generate_cyclic_axes, Cn, reflection_matrix
+from .sym_ops import rotation_matrix, inversion_matrix, Sn, normalize, inertia_isclose, generate_cyclic_axes, Cn, reflection_matrix, get_orthogonal_groups, orthonalize_3
 from .mol_ops import calcmoit, transform_isequivalent, find_SEAs
 from .constants import IH_C2_C3_ANGLE, IH_ANGLE_TOL
 
@@ -33,7 +33,7 @@ from .rotation_detection import (
 from .reflection_detection import (
     _is_there_sigmah, _is_there_sigmav, mol_is_planar, _planar_mol_axis,
 )
-from .special_geometry import _find_C3s_for_Ih, _find_C4s_for_Oh
+from .special_geometry import _find_C3s_for_Ih, validate_T, validate_O, validate_I
 
 from .numba_utils import to_typed_list
 
@@ -76,19 +76,20 @@ def _classify_spherical_top(mol, positions, masses, geom_tol):
     """
     seas = find_SEAs(mol)
     list_sea_subset = to_typed_list([sea.subset for sea in seas])
-    axes = _num_C2(positions, masses, geom_tol, list_sea_subset, 15)
-    n = len(axes)
+    c2_axes = _num_C2(positions, masses, geom_tol, list_sea_subset, 15)
+    c2_axes = np.array(c2_axes)
+    n = len(c2_axes)
     if n == 0:
         logger.warning("Molecule was wrongly classified as a spherical top, (num_C2 couldn't find any C2 axis), probably due to high eigen_tol. " \
             "Process will continue as general symmetry.")
         return _classify_general(mol, positions, masses, geom_tol)
     invertable = transform_isequivalent(positions, masses, geom_tol, inversion_matrix())
-    is_spherical = True
+    found_is_spherical = False
 
     if n >= 15:
         # Icosahedral: paxis = C5 axis, saxis = C2 axis from golden-ratio geometry.
         try:
-            c2_axis = axes[0]
+            c2_axis = c2_axes[0]
             c3s = _find_C3s_for_Ih(mol, seas)
             saxis = np.zeros(3)
             for c3 in c3s:
@@ -96,74 +97,67 @@ def _classify_spherical_top(mol, positions, masses, geom_tol):
                     taxis = normalize(np.cross(c3, c2_axis))
                     saxis = normalize(np.cross(taxis, c2_axis))
                     break
-            phi = (1 + np.sqrt(5.0)) / 2
-            theta = np.arccos(phi / np.sqrt(1 + phi**2))
-            paxis = np.dot(rotation_matrix(saxis, theta), c2_axis)
-            pg = "Ih" if invertable else "I"
+            if (saxis != np.zeros(3)).all():
+                phi = (1 + np.sqrt(5.0)) / 2
+                theta = np.arccos(phi / np.sqrt(1 + phi**2))
+                paxis = np.dot(rotation_matrix(saxis, theta), c2_axis)
+                if validate_I(positions, masses, geom_tol, paxis, saxis):
+                    pg = "Ih" if invertable else "I"
+                    found_is_spherical = True
         except RuntimeError:
-            is_spherical = False
-    elif n == 9:
+            pass
+    if n >= 9 and found_is_spherical == False:
         # Octahedral: paxis and saxis are two orthogonal C4 axes.
         try:
-            c4s = _find_C4s_for_Oh(mol, seas)
-            paxis, saxis, taxis = c4s[0], c4s[1], c4s[2]
+            #c4s = #_find_C4s_for_Oh(mol, seas)
+            all_c4s = []
+            for c2_axis in c2_axes:
+                if validate_cn_subrotations(4, c2_axis, positions, masses, geom_tol):
+                    all_c4s.append(c2_axis)
+            all_c4s = np.array(all_c4s)
+            ortho_c4_groups = get_orthogonal_groups(all_c4s, 1e-3)
+            for c4s  in ortho_c4_groups:
+                c4s = orthonalize_3(c4s[0], c4s[1], c4s[2])
 
-            c3s = np.array([
-                normalize(paxis +  saxis +  taxis),
-                normalize(paxis +  saxis + -taxis),
-                normalize(paxis + -saxis +  taxis),
-                normalize(paxis + -saxis + -taxis)])
-
-            c3_axes_are_valid = True
-
-            for c3_axis in c3s:
-                c3_axes_are_valid = validate_cn_subrotations(3, c3_axis, positions, masses, geom_tol) and c3_axes_are_valid
-
-            if c3_axes_are_valid == False:
-                is_spherical = False
-
-            pg = "Oh" if invertable else "O"
+                if validate_O(positions, masses, geom_tol, c4s):
+                    paxis, saxis = c4s[0], c4s[1]
+                    pg = "Oh" if invertable else "O"
+                found_is_spherical = True
         except RuntimeError:
-            is_spherical = False
+            pass
 
-    elif n == 3:
-        try:
-            # Tetrahedral (n == 3): use two of the three C2 axes.
-            paxis, saxis, taxis = axes[0], axes[1], axes[2]
+    if n >= 3 and found_is_spherical == False:
+        ortho_c2_groups = get_orthogonal_groups(c2_axes, 1e-3)
+        for c2_group in ortho_c2_groups:
+            try:
+                ortho_c2_axes = orthonalize_3(c2_group[0], c2_group[1], c2_group[2])
 
-            # Detect reflection symmetry (any sigma plane)
-            sigmav_chk, _ = _is_there_sigmav(positions, masses, geom_tol, list_sea_subset, paxis)
-            sigmah_chk = _is_there_sigmah(positions, masses, geom_tol, paxis)
+                if validate_T(positions, masses, geom_tol, ortho_c2_axes) == False:
+                    continue
 
-            # Detect improper rotation S4 (characteristic of Td/Th)
-            S4 = Sn(paxis, 4)
-            has_S4 = transform_isequivalent(positions, masses, geom_tol, S4)
+                # Tetrahedral (n == 3): use two of the three C2 axes.
+                paxis, saxis, taxis = ortho_c2_axes[0], ortho_c2_axes[1], ortho_c2_axes[2]
 
-            c3_axes = [
-                normalize(paxis +  saxis +  taxis),
-                normalize(paxis +  saxis + -taxis),
-                normalize(paxis + -saxis +  taxis),
-                normalize(paxis + -saxis + -taxis)]
+                # Detect reflection symmetry (any sigma plane)
+                sigmav_chk, _ = _is_there_sigmav(positions, masses, geom_tol, list_sea_subset, paxis)
+                sigmah_chk = _is_there_sigmah(positions, masses, geom_tol, paxis)
 
-            c3_axes_are_valid = True
-            for c3_axis in c3_axes:
-                c3_axes_are_valid = validate_cn_subrotations(3, c3_axis, positions, masses, geom_tol) and c3_axes_are_valid
+                # Detect improper rotation S4 (characteristic of Td/Th)
+                S4 = Sn(paxis, 4)
+                has_S4 = transform_isequivalent(positions, masses, geom_tol, S4)
 
-            if c3_axes_are_valid == False:
-                is_spherical = False
-
-            if invertable:
-                pg = "Th"
-            # elif sigmav_chk or sigmah_chk or has_S4:
-            elif has_S4: # Must have S4
-                pg = "Td"
-            else:
-                pg = "T"
-        except RuntimeError:
-            is_spherical = False
-    else:
-        is_spherical = False
-    if not is_spherical:
+                if invertable:
+                    pg = "Th"
+                # elif sigmav_chk or sigmah_chk or has_S4:
+                elif has_S4: # Must have S4
+                    pg = "Td"
+                else:
+                    pg = "T"
+                found_is_spherical = True
+                break
+            except RuntimeError:
+                pass
+    if found_is_spherical == False:
         logger.warning("Molecule was wrongly classified as a spherical top, (number of c2 axes is %d), probably due to high eigen_tol or geom_tol. " \
             "Process will continue as general symmetry.", n)
         return _classify_general(mol, positions, masses, geom_tol)

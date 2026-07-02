@@ -82,7 +82,7 @@ def _icosahedron_vectors():
         np.array([phip, -sm2h,   0.0 ]),
         np.array([phip,  sm2h,   0.0 ]),
     ]
-    return faces, vertices, edgecenters
+    return np.array(faces), np.array(vertices), np.array(edgecenters)
 
 
 def _checked_normalize(vec, label):

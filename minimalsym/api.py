@@ -4,7 +4,6 @@ minimalsym.py — Public API for molecular symmetry analysis.
 
 import numpy as np
 from dataclasses import dataclass
-import logging
 
 from .core.pg_detect import find_point_group, mol_is_planar
 from .core.symtext import Symtext
@@ -483,12 +482,12 @@ def symmetrize(mol_in: Atoms, geom_tol: float = 0.05, eigen_tol: float|None = No
     mol_in.translate(-mol_in.get_center_of_mass())
     _set_tolerances(mol_in, geom_tol, eigen_tol)
 
-    try:
-        asym_symtext = Symtext.from_molecule(mol_in)
-    except Exception as exc:
-        raise RuntimeError(
-            f"Symtext construction failed during symmetrize: {exc}"
-        ) from exc
+    #try:
+    asym_symtext = Symtext.from_molecule(mol_in)
+    #except Exception as exc:
+    #    raise RuntimeError(
+    #        f"Symtext construction failed during symmetrize: {exc}"
+    #    ) from exc
 
     mol = asym_symtext.mol
 

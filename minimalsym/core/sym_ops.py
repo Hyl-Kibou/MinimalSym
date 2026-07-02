@@ -367,3 +367,50 @@ def mean_axis_0_numba(arr):
     for j in range(arr.shape[1]):
         res[j] = arr[:, j].mean()
     return res
+
+@njit(cache=True)
+def get_orthogonal_groups(axes: np.ndarray, tol:float=global_tol):
+    ortho_groups = List.empty_list(types.float64[:, :])
+    n = len(axes)
+    pair = np.empty((2, 3), dtype=float)
+    trio = np.empty((3, 3), dtype=float)
+    for ii in range(n):
+        pair[0] = axes[ii]
+        trio[0] = axes[ii]
+        for jj in range(ii + 1, n):
+            pair[1] = axes[jj]
+            if axes_are_orthogonal(pair, tol) == False: continue
+            trio[1] = axes[jj]
+            for hh in range(jj + 1, n):
+                trio[2] = axes[hh]
+                if axes_are_orthogonal(trio, tol) == False: continue
+                ortho_groups.append(trio.copy())
+
+    return ortho_groups
+
+@njit(cache=True)
+def axes_are_orthogonal(axes: np.ndarray, tol:float=global_tol) -> bool:
+    """Return True if axes are all orthogonal to each other."""
+    naxes = len(axes)
+    axes = np.ascontiguousarray(axes)
+    for ii in range(naxes):
+        ii_axis = axes[ii]
+        for jj in range(ii+1, naxes):
+            d = np.abs(np.dot(ii_axis, axes[jj]))
+            if float_isclose(d, 0.0, atol=tol) == False:
+                return False
+    return True
+
+@njit(cache=True)
+def orthonalize_3(a: np.ndarray, b: np.ndarray, c: np.ndarray) -> np.ndarray:
+    m = np.column_stack((a, b, c))
+
+    U, _, Vt = np.linalg.svd(m)
+    Q = U @ Vt
+
+    new_arrays = np.empty((3, 3), dtype=float)
+
+    for ii in range(3):
+        new_arrays[ii] = Q[:, ii]
+
+    return new_arrays

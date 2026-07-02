@@ -13,8 +13,10 @@ import logging
 
 from .sym_ops import Cn, normalize, float_isclose, get_unique_axes
 from .mol_ops import transform_isequivalent
+from .rotation_detection import validate_cn_subrotations
+from .cubic_icosahedral import FACE_VEC, VERTEX_VEC, EDGE_VEC
+from .mol_orient import _jit_rotate_mol_to_symels
 logger = logging.getLogger(__name__)
-
 
 # ── Icosahedral geometry ──────────────────────────────────────────────────────
 
@@ -94,8 +96,11 @@ def _find_C3s_for_Ih(mol, seas):
     """
 
     c3_axes = List.empty_list(types.float64[:])
+    positions = mol.positions
+    masses = mol.get_masses()
+    geom_tol = mol.info["geom_tol"]
     for sea in seas:
-        c3_axes.extend(_jit_find_C3s_for_Ih(len(sea.subset), mol.positions[sea.subset], mol.get_masses()[sea.subset], mol.info["geom_tol"]))
+        c3_axes.extend(_jit_find_C3s_for_Ih(len(sea.subset), positions[sea.subset], masses[sea.subset], geom_tol))
         c3_axes = get_unique_axes(c3_axes)
         chk = len(c3_axes)
         if chk == 10:
@@ -226,8 +231,11 @@ def _find_C4s_for_Oh(mol, seas):
     List[np.ndarray], shape (3,)
     """
     c4_axes = List.empty_list(types.float64[:])
+    positions = mol.positions
+    masses = mol.get_masses()
+    geom_tol = mol.info["geom_tol"]
     for sea in seas:
-        c4_axes.extend(_jit_find_C4s_for_Oh(len(sea.subset), mol.positions[sea.subset], mol.get_masses()[sea.subset], mol.info["geom_tol"]))
+        c4_axes.extend(_jit_find_C4s_for_Oh(len(sea.subset), positions[sea.subset], masses[sea.subset], geom_tol))
         c4_axes = get_unique_axes(c4_axes)
         chk = len(c4_axes)
         if chk == 3:
@@ -236,3 +244,71 @@ def _find_C4s_for_Oh(mol, seas):
     raise RuntimeError(
             "Unexpected number of C4 axes for Oh point group, expected 3."
         )
+
+# ── Validate geometry ─────────────────────────────────────────────────────────
+
+@njit(cache=True)
+def validate_T(positions: np.ndarray, masses: np.ndarray, geom_tol: float, c2_axes: np.ndarray):
+    for c2_axis in c2_axes:
+        if validate_cn_subrotations(2, c2_axis, positions, masses, geom_tol) == False:
+            return False
+    c3_axes = [
+        normalize(c2_axes[0] +  c2_axes[1] +  c2_axes[2]),
+        normalize(c2_axes[0] +  c2_axes[1] + -c2_axes[2]),
+        normalize(c2_axes[0] + -c2_axes[1] +  c2_axes[2]),
+        normalize(c2_axes[0] + -c2_axes[1] + -c2_axes[2])]
+
+    for c3_axis in c3_axes:
+        if validate_cn_subrotations(3, c3_axis, positions, masses, geom_tol) == False:
+            return False
+
+    return True
+
+@njit(cache=True)
+def validate_O(positions: np.ndarray, masses: np.ndarray, geom_tol: float, c4_axes: np.ndarray):
+    for c4_axis in c4_axes:
+        if validate_cn_subrotations(4, c4_axis, positions, masses, geom_tol) == False:
+            return False
+
+    c3_axes = [
+        normalize(c4_axes[0] +  c4_axes[1] +  c4_axes[2]),
+        normalize(c4_axes[0] +  c4_axes[1] + -c4_axes[2]),
+        normalize(c4_axes[0] + -c4_axes[1] +  c4_axes[2]),
+        normalize(c4_axes[0] + -c4_axes[1] + -c4_axes[2])]
+
+    for c3_axis in c3_axes:
+        if validate_cn_subrotations(3, c3_axis, positions, masses, geom_tol) == False:
+            return False
+
+    c2_axes = [
+        normalize(c4_axes[0] +  c4_axes[1]),
+        normalize(c4_axes[0] + -c4_axes[1]),
+        normalize(c4_axes[0] +  c4_axes[2]),
+        normalize(c4_axes[0] + -c4_axes[2]),
+        normalize(c4_axes[1] +  c4_axes[2]),
+        normalize(c4_axes[1] + -c4_axes[2]),
+    ]
+    for c2_axis in c2_axes:
+        if validate_cn_subrotations(2, c2_axis, positions, masses, geom_tol) == False:
+            return False
+
+    return True
+
+
+@njit(cache=True)
+def validate_I(positions: np.ndarray, masses: np.ndarray, geom_tol: float, paxis: np.ndarray, saxis: np.ndarray):
+    new_positions, _, _ = _jit_rotate_mol_to_symels(positions, paxis, saxis)
+
+    for c5_axis in FACE_VEC:
+        if validate_cn_subrotations(5, c5_axis, new_positions, masses, geom_tol) == False:
+            return False
+
+    for c3_axis in VERTEX_VEC:
+        if validate_cn_subrotations(3, c3_axis, new_positions, masses, geom_tol) == False:
+            return False
+
+    for c2_axis in EDGE_VEC:
+        if validate_cn_subrotations(2, c2_axis, new_positions, masses, geom_tol) == False:
+            return False
+
+    return True
