@@ -2,15 +2,17 @@
 
 Usage
 -----
-    from molsympy.collections import symmetrized, unsymmetrized
+```python
+from molsympy.collections import symmetrized, unsymmetrized
 
-    # idealized / symmetrized structures
-    for name in symmetrized.names:
-        atoms = symmetrized[name]
+# idealized / symmetrized structures
+for name in symmetrized.names:
+    atoms = symmetrized[name]
 
-    # raw / unsymmetrized structures
-    atoms = unsymmetrized['C2v_1']
-    print(unsymmetrized.point_groups)
+# raw / unsymmetrized structures
+atoms = unsymmetrized['C2v_1']
+print(unsymmetrized.point_groups)
+```
 """
 
 import numpy as np
@@ -18,6 +20,10 @@ from pathlib import Path
 from importlib import resources
 from ase import Atoms
 
+
+__all__ = [
+    "symmetrized", "unsymmetrized"
+]
 
 def _load_npz(sym: bool) -> "np.lib.npyio.NpzFile":
     filename = "MolSymPy_sym.npz" if sym else "MolSymPy_unsym.npz"
@@ -58,10 +64,14 @@ class MolSymPyCollection:
 
     Examples
     --------
-    >>> from molsympy.collections import symmetrized, unsymmetrized
-    >>> for name in symmetrized.names:
-    ...     atoms = symmetrized[name]
-    >>> atoms = unsymmetrized['C2v_1']
+    ```Python
+    from molsympy.collections import symmetrized, unsymmetrized
+
+    for name in symmetrized.names:
+        atoms = symmetrized[name]
+
+    atoms = unsymmetrized['C2v_1']
+    ```
     """
 
     def __init__(self, db, is_symmetrized: bool = False):
@@ -174,4 +184,29 @@ class MolSymPyCollection:
 
 
 symmetrized   = MolSymPyCollection(_load_npz(sym=True),  is_symmetrized=True)
+"""
+Idealized / symmetrized structures.
+
+Usage
+-----
+```python
+from molsympy.collections import symmetrized
+
+for name in symmetrized.names:
+    atoms = symmetrized[name]
+```
+"""
+
 unsymmetrized = MolSymPyCollection(_load_npz(sym=False), is_symmetrized=False)
+"""
+Raw / unsymmetrized structures.
+
+Usage
+-----
+```python
+from molsympy.collections import unsymmetrized
+
+for name in unsymmetrized.names:
+    atoms = unsymmetrized[name]
+```
+"""
