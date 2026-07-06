@@ -1,0 +1,9 @@
+graft test
+graft docs
+graft examples
+
+include README.md
+include LICENSE
+include pyproject.toml
+
+global-exclude *.py[cod] __pycache__
